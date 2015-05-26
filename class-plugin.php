@@ -111,7 +111,7 @@ class Plugin {
 
 		if ( ! empty( $data ) ) {
 			return sprintf( '<script>var dataLayer = %s;</script>',
-				json_encode( $data )
+				json_encode( array( $data ) )
 			);
 		}
 
