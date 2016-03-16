@@ -18,14 +18,28 @@ add_action( 'plugins_loaded', array( 'HM_GTM\Plugin', 'get_instance' ) );
  * Output the gtm tag, place this immediately after the opening <body> tag
  *
  * @param bool $echo
+ * @param bool $user_report
+ *
  * @return string
  */
-function tag( $echo = true ) {
+function tag( $echo = true, $user_report = true ) {
 
 	$id = get_option( 'hm_gtm_id', false );
 
 	if ( ! $id ) {
 		return '';
+	}
+
+	if ( $user_report ) {
+
+		add_filter( 'hm_gtm_data_layer', function ( $data ) {
+			$user_report_id = get_option( 'hm_user_report_id', false );
+			if ( ! empty ( $user_report_id ) ) {
+				$data['user_report_id'] = $user_report_id;
+			}
+
+			return $data;
+		} );
 	}
 
 	$tag = sprintf( '
