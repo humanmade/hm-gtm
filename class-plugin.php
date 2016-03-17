@@ -68,7 +68,6 @@ class Plugin {
 	}
 
 	public function text_settings_field( $args ) {
-
 		$args = wp_parse_args( $args, array(
 			'name'        => '',
 			'value'       => '',
