@@ -16,7 +16,6 @@ class Plugin {
 	public function __construct() {
 
 		add_action( 'admin_init', array( $this, 'action_admin_init' ) );
-		add_action( 'wp_head', array( $this, 'user_report' ) );
 
 	}
 
