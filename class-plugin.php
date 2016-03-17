@@ -23,10 +23,16 @@ class Plugin {
 	public function action_admin_init() {
 
 		// add settings section
-		add_settings_section( 'hm_gtm', esc_html__( 'Google Tag Manager', 'hm_gtm' ), array( $this, 'settings_section' ), 'general' );
+		add_settings_section( 'hm_gtm', esc_html__( 'Google Tag Manager', 'hm_gtm' ), array(
+			$this,
+			'settings_section'
+		), 'general' );
 
 		// add settings field
-		add_settings_field( 'hm_gtm_id_field', esc_html__( 'Container ID', 'hm_gtm' ), array( $this, 'text_settings_field' ), 'general', 'hm_gtm', array(
+		add_settings_field( 'hm_gtm_id_field', esc_html__( 'Container ID', 'hm_gtm' ), array(
+			$this,
+			'text_settings_field'
+		), 'general', 'hm_gtm', array(
 			'value'       => get_option( 'hm_gtm_id', '' ),
 			'name'        => 'hm_gtm_id',
 			'description' => esc_html__( 'Enter your container ID eg. GTM-123ABC', 'hm_gtm' )
@@ -34,22 +40,26 @@ class Plugin {
 
 		register_setting( 'general', 'hm_gtm_id', 'sanitize_text_field' );
 
+		// multisite field below
+		if ( ! is_multisite() ) {
+			return;
+		}
+
+		// add settings for primary blog
 		if ( SITE_ID_CURRENT_SITE === get_current_blog_id() ) {
 
-			// add settings section
-			add_settings_section( 'hm_urm', esc_html__( 'User Report Manager', 'hm_gtm' ), array( $this, 'settings_section' ), 'general' );
-
-			register_setting( 'general', 'hm_user_report_id', 'sanitize_text_field' );
-
-			add_settings_field( 'hm_user_report_id_field', esc_html__( 'User report ID', 'hm_urm' ), array(
+			// add settings field
+			add_settings_field( 'hm_network_gtm_id_field', esc_html__( 'Network Container ID', 'hm_gtm' ), array(
 				$this,
 				'text_settings_field'
-			), 'general', 'hm_urm', array(
-				'value'       => get_option( 'hm_user_report_id', '' ),
-				'name'        => 'hm_user_report_id',
-				'description' => esc_html__( 'Enter your User Report ID eg. 2fe19bec-4466-4294-ad6a-5db210106d47', 'hm_gtm' ),
-				'class'       => 'regular-text'
+			), 'general', 'hm_gtm', array(
+				'value'       => get_option( 'hm_network_gtm_id', '' ),
+				'name'        => 'hm_network_gtm_id',
+				'description' => esc_html__( 'Enter your network container ID eg. GTM-123ABC', 'hm_gtm' ),
 			) );
+
+			register_setting( 'general', 'hm_network_gtm_id', 'sanitize_text_field' );
+
 		}
 
 	}
@@ -64,10 +74,9 @@ class Plugin {
 			'name'        => '',
 			'value'       => '',
 			'description' => '',
-			'class'       => ''
 		) );
 
-		printf( '<input type="text" id="%1$s" class="%4$s" name="%1$s" value="%2$s" />%3$s',
+		printf( '<input type="text" id="%1$s" name="%1$s" value="%2$s" />%3$s',
 			esc_attr( $args['name'] ),
 			esc_attr( $args['value'] ),
 			$args['description'] ? '<br /> <span class="description">' . esc_html( $args['description'] ) . '</span>' : '',
@@ -138,37 +147,6 @@ class Plugin {
 		}
 
 		return '';
-	}
-
-	/**
-	 * Outputs the user_report javascript with site-wide option
-	 *
-	 *
-	 * @return string
-	 */
-	public function user_report() {
-
-		$id = get_blog_option( SITE_ID_CURRENT_SITE, 'hm_user_report_id', false );
-
-		if ( ! $id ) {
-			return '';
-		}
-
-		$tag = sprintf( '
-			<script type="text/javascript">
-			var _urq = _urq || [];
-			_urq.push([\'initSite\', \'%1$s\']);
-			(function() {
-			var ur = document.createElement(\'script\'); ur.type = \'text/javascript\'; ur.async = true;
-			ur.src = (\'https:\' == document.location.protocol ? \'https://cdn.userreport.com/userreport.js\' : \'http://cdn.userreport.com/userreport.js\');
-			var s = document.getElementsByTagName(\'script\')[0]; s.parentNode.insertBefore(ur, s);
-			})();
-			</script>
-			',
-			esc_attr( $id )
-		);
-
-		echo $tag;
 	}
 
 }

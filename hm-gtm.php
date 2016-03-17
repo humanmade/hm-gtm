@@ -18,29 +18,49 @@ add_action( 'plugins_loaded', array( 'HM_GTM\Plugin', 'get_instance' ) );
  * Output the gtm tag, place this immediately after the opening <body> tag
  *
  * @param bool $echo
+ * @param bool $network True to include network wide Google Tag Manager
+ *
  * @return string
  */
-function tag( $echo = true ) {
+function tag( $echo = true, $network = true ) {
 
 	$id = get_option( 'hm_gtm_id', false );
 
-	if ( ! $id ) {
-		return '';
+	$tag = '';
+
+	if ( $id ) {
+		$tag = sprintf( '
+			%2$s
+			<!-- Google Tag Manager -->
+			<noscript><iframe src="//www.googletagmanager.com/ns.html?id=%1$s" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+			<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({\'gtm.start\': new Date().getTime(),event:\'gtm.js\'});
+				var f=d.getElementsByTagName(s)[0], j=d.createElement(s), dl=l!=\'dataLayer\'?\'&l=\'+l:\'\';
+				j.async=true;j.src=\'//www.googletagmanager.com/gtm.js?id=\'+i+dl;f.parentNode.insertBefore(j,f);
+			})(window,document,\'script\',\'dataLayer\',\'%1$s\');</script>
+			<!-- End Google Tag Manager -->
+			',
+			esc_attr( $id ),
+			Plugin::data_layer()
+		);
 	}
 
-	$tag = sprintf( '
-	%2$s
-	<!-- Google Tag Manager -->
-	<noscript><iframe src="//www.googletagmanager.com/ns.html?id=%1$s" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-	<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({\'gtm.start\': new Date().getTime(),event:\'gtm.js\'});
-		var f=d.getElementsByTagName(s)[0], j=d.createElement(s), dl=l!=\'dataLayer\'?\'&l=\'+l:\'\';
-		j.async=true;j.src=\'//www.googletagmanager.com/gtm.js?id=\'+i+dl;f.parentNode.insertBefore(j,f);
-	})(window,document,\'script\',\'dataLayer\',\'%1$s\');</script>
-	<!-- End Google Tag Manager -->
-	',
-		esc_attr( $id ),
-		Plugin::data_layer()
-	);
+	if ( is_multisite() && $network ) {
+		$id = get_blog_option( SITE_ID_CURRENT_SITE, 'hm_network_gtm_id', false );
+
+		if ( $id ) {
+			$tag .= sprintf( '
+				<!-- Google Tag Manager - Network Wide -->
+				<noscript><iframe src="//www.googletagmanager.com/ns.html?id=%1$s" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+				<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({\'gtm.start\': new Date().getTime(),event:\'gtm.js\'});
+					var f=d.getElementsByTagName(s)[0], j=d.createElement(s), dl=l!=\'dataLayer\'?\'&l=\'+l:\'\';
+					j.async=true;j.src=\'//www.googletagmanager.com/gtm.js?id=\'+i+dl;f.parentNode.insertBefore(j,f);
+				})(window,document,\'script\',\'networkDataLayer\',\'%1$s\');</script>
+				<!-- End Google Tag Manager -->
+				',
+				esc_attr( $id )
+			);
+		}
+	}
 
 	if ( $echo ) {
 		echo $tag;
