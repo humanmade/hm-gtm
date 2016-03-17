@@ -16,6 +16,8 @@ class Plugin {
 	public function __construct() {
 
 		add_action( 'admin_init', array( $this, 'action_admin_init' ) );
+		add_action( 'wpmu_options', array( $this, 'show_network_settings' ) );
+		add_action( 'update_wpmu_options', array( $this, 'save_network_settings' ) );
 
 	}
 
@@ -39,26 +41,35 @@ class Plugin {
 
 		register_setting( 'general', 'hm_gtm_id', 'sanitize_text_field' );
 
-		// multisite field below
-		if ( ! is_multisite() ) {
-			return;
-		}
+	}
 
-		// add settings for primary blog
-		if ( SITE_ID_CURRENT_SITE === get_current_blog_id() ) {
+	/**
+	 * Display Network Settings for Google Tag Manager
+	 */
+	public function show_network_settings() { ?>
+		<h3><?php esc_html_e( 'Network Google Tag Manager', 'hm_gtm' ); ?></h3>
+		<table id="menu" class="form-table">
+			<tr valign="top">
+				<th scope="row"><?php esc_html_e( 'Container ID', 'hm_gtm' ); ?></th>
+				<td>
+					<label for="hm_network_gtm_id">
+						<input type="text" id="hm_network_gtm_id" name="hm_network_gtm_id" value="<?php echo get_site_option( 'hm_network_gtm_id' ); ?>" />
+					</label>
 
-			// add settings field
-			add_settings_field( 'hm_network_gtm_id_field', esc_html__( 'Network Container ID', 'hm_gtm' ), array(
-				$this,
-				'text_settings_field'
-			), 'general', 'hm_gtm', array(
-				'value'       => get_option( 'hm_network_gtm_id', '' ),
-				'name'        => 'hm_network_gtm_id',
-				'description' => esc_html__( 'Enter your network container ID eg. GTM-123ABC', 'hm_gtm' ),
-			) );
+					<p class="description"><?php esc_html_e( 'Enter your network container ID eg. GTM-123ABC', 'hm_gtm' ); ?></p>
+				</td>
+			</tr>
+		</table>
+		<?php
+	}
 
-			register_setting( 'general', 'hm_network_gtm_id', 'sanitize_text_field' );
+	/**
+	 * Save Network Settings for Google Tag Manager.
+	 */
+	public function save_network_settings() {
 
+		if ( isset( $_POST['hm_network_gtm_id'] ) ) {
+			update_site_option( 'hm_network_gtm_id', sanitize_text_field( $_POST['hm_network_gtm_id'] ) );
 		}
 
 	}
@@ -68,6 +79,7 @@ class Plugin {
 	}
 
 	public function text_settings_field( $args ) {
+
 		$args = wp_parse_args( $args, array(
 			'name'        => '',
 			'value'       => '',
@@ -133,6 +145,9 @@ class Plugin {
 				$data['archive'] = 'author';
 				$data['author']  = get_queried_object()->user_nicename;
 			}
+		}
+		if ( is_multisite() ) {
+			$data['site'] = get_site_url();
 		}
 
 		$data = apply_filters( 'hm_gtm_data_layer', $data );

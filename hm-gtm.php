@@ -22,11 +22,13 @@ add_action( 'plugins_loaded', array( 'HM_GTM\Plugin', 'get_instance' ) );
  *
  * @return string
  */
-function tag( $echo = true, $network = true ) {
+function tag( $echo = true ) {
 
 	$id = get_option( 'hm_gtm_id', false );
 
 	$tag = '';
+
+	$data_layer = Plugin::data_layer();
 
 	if ( $id ) {
 		$tag = sprintf( '
@@ -40,24 +42,28 @@ function tag( $echo = true, $network = true ) {
 			<!-- End Google Tag Manager -->
 			',
 			esc_attr( $id ),
-			Plugin::data_layer()
+			$data_layer
 		);
+		$data_layer = '';
 	}
 
-	if ( is_multisite() && $network ) {
-		$id = get_blog_option( SITE_ID_CURRENT_SITE, 'hm_network_gtm_id', false );
+	if ( is_multisite() ) {
+
+		$id = get_site_option( 'hm_network_gtm_id' );
 
 		if ( $id ) {
 			$tag .= sprintf( '
+				%2$s
 				<!-- Google Tag Manager - Network Wide -->
 				<noscript><iframe src="//www.googletagmanager.com/ns.html?id=%1$s" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 				<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({\'gtm.start\': new Date().getTime(),event:\'gtm.js\'});
 					var f=d.getElementsByTagName(s)[0], j=d.createElement(s), dl=l!=\'dataLayer\'?\'&l=\'+l:\'\';
 					j.async=true;j.src=\'//www.googletagmanager.com/gtm.js?id=\'+i+dl;f.parentNode.insertBefore(j,f);
-				})(window,document,\'script\',\'networkDataLayer\',\'%1$s\');</script>
+				})(window,document,\'script\',\'dataLayer\',\'%1$s\');</script>
 				<!-- End Google Tag Manager -->
 				',
-				esc_attr( $id )
+				esc_attr( $id ),
+				$data_layer
 			);
 		}
 	}
