@@ -23,8 +23,6 @@ add_action( 'plugins_loaded', array( 'HM_GTM\Plugin', 'get_instance' ) );
  */
 function tag( $echo = true ) {
 
-	$id = get_option( 'hm_gtm_id', false );
-
 	$output = '';
 
 	$tag = '
@@ -39,6 +37,7 @@ function tag( $echo = true ) {
 
 	echo Plugin::data_layer();
 
+	$id = get_option( 'hm_gtm_id', false );
 	if ( $id ) {
 		$output .= sprintf( $tag, esc_attr( $id ) );
 	}

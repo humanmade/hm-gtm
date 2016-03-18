@@ -149,7 +149,8 @@ class Plugin {
 			}
 		}
 		if ( is_multisite() ) {
-			$data['blog'] = get_site_url();
+			$data['blog']    = home_url();
+			$data['network'] = network_home_url();
 		}
 
 		$data = apply_filters( 'hm_gtm_data_layer', $data );
