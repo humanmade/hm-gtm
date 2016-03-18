@@ -26,17 +26,17 @@ class Plugin {
 		// add settings section
 		add_settings_section( 'hm_gtm', esc_html__( 'Google Tag Manager', 'hm_gtm' ), array(
 			$this,
-			'settings_section'
+			'settings_section',
 		), 'general' );
 
 		// add settings field
 		add_settings_field( 'hm_gtm_id_field', esc_html__( 'Container ID', 'hm_gtm' ), array(
 			$this,
-			'text_settings_field'
+			'text_settings_field',
 		), 'general', 'hm_gtm', array(
 			'value'       => get_option( 'hm_gtm_id', '' ),
 			'name'        => 'hm_gtm_id',
-			'description' => esc_html__( 'Enter your container ID eg. GTM-123ABC', 'hm_gtm' )
+			'description' => esc_html__( 'Enter your container ID eg. GTM-123ABC', 'hm_gtm' ),
 		) );
 
 		register_setting( 'general', 'hm_gtm_id', 'sanitize_text_field' );
@@ -50,12 +50,15 @@ class Plugin {
 		<h3><?php esc_html_e( 'Network Google Tag Manager', 'hm_gtm' ); ?></h3>
 		<table id="menu" class="form-table">
 			<tr valign="top">
-				<th scope="row"><label for="hm_network_gtm_id"><?php esc_html_e( 'Container ID', 'hm_gtm' ); ?></label>
+				<th scope="row">
+					<label for="hm_gtm_network_id"><?php esc_html_e( 'Container ID', 'hm_gtm' ); ?></label>
 				</th>
 				<td>
-					<input type="text" id="hm_network_gtm_id" name="hm_network_gtm_id" value="<?php echo esc_attr( get_site_option( 'hm_network_gtm_id' ) ); ?>" />
-
-					<p class="description"><?php esc_html_e( 'Enter your network container ID eg. GTM-123ABC', 'hm_gtm' ); ?></p>
+					<?php $this->text_settings_field( array(
+						'name'       => 'hm_gtm_network_id',
+						'value'      => get_site_option( 'hm_gtm_network_id' ),
+						'decription' => esc_html__( 'Enter your network container ID eg. GTM-123ABC', 'hm_gtm' ),
+					) ); ?>
 				</td>
 			</tr>
 		</table>
@@ -67,8 +70,8 @@ class Plugin {
 	 */
 	public function save_network_settings() {
 
-		if ( isset( $_POST['hm_network_gtm_id'] ) ) {
-			update_site_option( 'hm_network_gtm_id', sanitize_text_field( $_POST['hm_network_gtm_id'] ) );
+		if ( isset( $_POST['hm_gtm_network_id'] ) ) {
+			update_site_option( 'hm_gtm_network_id', sanitize_text_field( $_POST['hm_gtm_network_id'] ) );
 		}
 
 	}
@@ -153,7 +156,7 @@ class Plugin {
 
 		if ( ! empty( $data ) ) {
 			return sprintf( '<script>var dataLayer = %s;</script>',
-				json_encode( array( $data ) )
+				wp_json_encode( array( $data ) )
 			);
 		}
 

@@ -25,12 +25,6 @@ function tag( $echo = true ) {
 
 	$id = get_option( 'hm_gtm_id', false );
 
-	$network_id = get_site_option( 'hm_network_gtm_id' );
-
-	if ( ! ( $id || $network_id ) ) {
-		return;
-	}
-
 	$output = '';
 
 	$tag = '
@@ -46,13 +40,14 @@ function tag( $echo = true ) {
 	echo Plugin::data_layer();
 
 	if ( $id ) {
-
 		$output .= sprintf( $tag, esc_attr( $id ) );
 	}
 
-	if ( is_multisite() && $network_id ) {
-
-		$output .= sprintf( $tag, esc_attr( $network_id ) );
+	if ( is_multisite() ) {
+		$network_id = get_site_option( 'hm_gtm_network_id' );
+		if ( $network_id ) {
+			$output .= sprintf( $tag, esc_attr( $network_id ) );
+		}
 	}
 
 	if ( $echo ) {
