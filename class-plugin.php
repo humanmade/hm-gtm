@@ -50,11 +50,10 @@ class Plugin {
 		<h3><?php esc_html_e( 'Network Google Tag Manager', 'hm_gtm' ); ?></h3>
 		<table id="menu" class="form-table">
 			<tr valign="top">
-				<th scope="row"><?php esc_html_e( 'Container ID', 'hm_gtm' ); ?></th>
+				<th scope="row"><label for="hm_network_gtm_id"><?php esc_html_e( 'Container ID', 'hm_gtm' ); ?></label>
+				</th>
 				<td>
-					<label for="hm_network_gtm_id">
-						<input type="text" id="hm_network_gtm_id" name="hm_network_gtm_id" value="<?php echo get_site_option( 'hm_network_gtm_id' ); ?>" />
-					</label>
+					<input type="text" id="hm_network_gtm_id" name="hm_network_gtm_id" value="<?php echo esc_attr( get_site_option( 'hm_network_gtm_id' ) ); ?>" />
 
 					<p class="description"><?php esc_html_e( 'Enter your network container ID eg. GTM-123ABC', 'hm_gtm' ); ?></p>
 				</td>
@@ -147,7 +146,7 @@ class Plugin {
 			}
 		}
 		if ( is_multisite() ) {
-			$data['site'] = get_site_url();
+			$data['blog'] = get_site_url();
 		}
 
 		$data = apply_filters( 'hm_gtm_data_layer', $data );
