@@ -16,16 +16,24 @@ class Plugin {
 	public function __construct() {
 
 		add_action( 'admin_init', array( $this, 'action_admin_init' ) );
+		add_action( 'wpmu_options', array( $this, 'show_network_settings' ) );
+		add_action( 'update_wpmu_options', array( $this, 'save_network_settings' ) );
 
 	}
 
 	public function action_admin_init() {
 
 		// add settings section
-		add_settings_section( 'hm_gtm', esc_html__( 'Google Tag Manager', 'hm_gtm' ), array( $this, 'settings_section' ), 'general' );
+		add_settings_section( 'hm_gtm', esc_html__( 'Google Tag Manager', 'hm_gtm' ), array(
+			$this,
+			'settings_section'
+		), 'general' );
 
 		// add settings field
-		add_settings_field( 'hm_gtm_id_field', esc_html__( 'Container ID', 'hm_gtm' ), array( $this, 'text_settings_field' ), 'general', 'hm_gtm', array(
+		add_settings_field( 'hm_gtm_id_field', esc_html__( 'Container ID', 'hm_gtm' ), array(
+			$this,
+			'text_settings_field'
+		), 'general', 'hm_gtm', array(
 			'value'       => get_option( 'hm_gtm_id', '' ),
 			'name'        => 'hm_gtm_id',
 			'description' => esc_html__( 'Enter your container ID eg. GTM-123ABC', 'hm_gtm' )
@@ -35,15 +43,46 @@ class Plugin {
 
 	}
 
+	/**
+	 * Display Network Settings for Google Tag Manager
+	 */
+	public function show_network_settings() { ?>
+		<h3><?php esc_html_e( 'Network Google Tag Manager', 'hm_gtm' ); ?></h3>
+		<table id="menu" class="form-table">
+			<tr valign="top">
+				<th scope="row"><label for="hm_network_gtm_id"><?php esc_html_e( 'Container ID', 'hm_gtm' ); ?></label>
+				</th>
+				<td>
+					<input type="text" id="hm_network_gtm_id" name="hm_network_gtm_id" value="<?php echo esc_attr( get_site_option( 'hm_network_gtm_id' ) ); ?>" />
+
+					<p class="description"><?php esc_html_e( 'Enter your network container ID eg. GTM-123ABC', 'hm_gtm' ); ?></p>
+				</td>
+			</tr>
+		</table>
+		<?php
+	}
+
+	/**
+	 * Save Network Settings for Google Tag Manager.
+	 */
+	public function save_network_settings() {
+
+		if ( isset( $_POST['hm_network_gtm_id'] ) ) {
+			update_site_option( 'hm_network_gtm_id', sanitize_text_field( $_POST['hm_network_gtm_id'] ) );
+		}
+
+	}
+
 	public function settings_section() {
 		// void
 	}
 
 	public function text_settings_field( $args ) {
+
 		$args = wp_parse_args( $args, array(
 			'name'        => '',
 			'value'       => '',
-			'description' => ''
+			'description' => '',
 		) );
 
 		printf( '<input type="text" id="%1$s" name="%1$s" value="%2$s" />%3$s',
@@ -105,6 +144,9 @@ class Plugin {
 				$data['archive'] = 'author';
 				$data['author']  = get_queried_object()->user_nicename;
 			}
+		}
+		if ( is_multisite() ) {
+			$data['blog'] = get_site_url();
 		}
 
 		$data = apply_filters( 'hm_gtm_data_layer', $data );
