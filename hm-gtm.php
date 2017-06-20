@@ -10,7 +10,7 @@ Author URI: http://hmn.md
 
 namespace HM_GTM;
 
-require_once 'class-plugin.php';
+require_once __DIR__ . '/class-plugin.php';
 
 add_action( 'plugins_loaded', array( 'HM_GTM\Plugin', 'get_instance' ) );
 
