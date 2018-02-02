@@ -4,7 +4,7 @@
 Plugin Name: Google Tag Manager tools
 Description: Provides basic GTM integration by providing a template tag <code>HM_GTM\tag()</code> to place after <code>&lt;body&gt;</code> and a filterable dataLayer object
 Author: Human Made Limited
-Version: 1.0
+Version: 1.0.1
 Author URI: http://hmn.md
 */
 
@@ -23,6 +23,10 @@ add_action( 'wp_head', __NAMESPACE__ . '\tag', 1, 0 );
  * @return string
  */
 function tag( $echo = true ) {
+	// Back compat for tag calls in the body of a theme.
+	if ( ! doing_action( 'wp_head' ) ) {
+		return '';
+	}
 
 	$output = '';
 
