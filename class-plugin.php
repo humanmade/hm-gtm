@@ -153,10 +153,24 @@ class Plugin {
 			$data['network'] = network_home_url();
 		}
 
+		/**
+		 * Filter the intial dataLayer variable data.
+		 *
+		 * @param array $data
+		 */
 		$data = apply_filters( 'hm_gtm_data_layer', $data );
+		
+		/**
+		 * Filter the dataLayer variable name. Tag manager allow for 
+		 * custom variable names to avoid collisions and scope container events.
+		 *
+		 * @param string $data_layer The name to use for the dataLayer variable.
+		 */
+		$data_layer_var = apply_filters( 'hm_gtm_data_layer_var', 'dataLayer' );
 
 		if ( ! empty( $data ) ) {
-			return sprintf( '<script>var dataLayer = %s;</script>',
+			return sprintf( '<script>var %s = %s;</script>',
+				sanitize_key( $data_layer_var ),
 				wp_json_encode( array( $data ) )
 			);
 		}
