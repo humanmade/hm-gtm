@@ -1,0 +1,13 @@
+{
+    "name": "humanmade/hm-gtm",
+    "description": "Google Tag Manager Tools for WordPress",
+    "type": "wordpress-plugin",
+    "license": "GPL-3.0",
+    "authors": [
+        {
+            "name": "Robert O'Rourke",
+            "email": "rob@humanmade.com"
+        }
+    ],
+    "require": {}
+}
