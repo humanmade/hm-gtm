@@ -55,13 +55,23 @@ function tag() {
 			';
 	}
 
-	$id = get_option( 'hm_gtm_id', false );
+	/**
+	 * Filter the hm_gtm_id variable to support other methods of setting this value.
+	 *
+	 * @param string $id The GTM container ID.
+	 */
+	$id = apply_filters( 'hm_gtm_id', get_option( 'hm_gtm_id', false ) );
 	if ( $id ) {
 		$output .= sprintf( $tag, esc_attr( $id ), sanitize_key( $data_layer_var ) );
 	}
 
 	if ( is_multisite() ) {
-		$network_id = get_site_option( 'hm_gtm_network_id' );
+		/**
+		 * Filter the hm_gtm_network_id variable to support other methods of setting this value.
+		 *
+		 * @param string $network_id The network GTM container ID.
+		 */
+		$network_id = apply_filters( 'hm_gtm_network_id', get_site_option( 'hm_gtm_network_id' ) );
 		if ( $network_id ) {
 			$output .= sprintf( $tag, esc_attr( $network_id ), sanitize_key( $data_layer_var ) );
 		}
