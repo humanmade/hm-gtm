@@ -2,6 +2,14 @@
 
 Google Tag Manager template tags and settings tool.
 
+## Important: V2 Release breaking changes
+
+Version 2 brings some breaking changes that may require you to update your implementation and any data layer variables you have set up in Tag Manager. The key differences are:
+
+- The `HM_GTM` namespace has been changed to `HM\GTM`
+- The `HM_GTM\tag()` function has been changed to `gtm_tag()`
+- The default `dataLayer` has been completely overhauled
+
 ## Usage
 
 Once the plugin is installed and activated there are 2 places you can configure:
@@ -35,6 +43,8 @@ add_filter( 'hm_gtm_data_layer', function( $data ) {
 ```
 
 Find out more about [using the `dataLayer` variable here](https://developers.google.com/tag-manager/devguide#datalayer).
+
+You can explore and view the `dataLayer` variables by previewing your container and using the overlay on your website.
 
 ### Custom event tracking
 
