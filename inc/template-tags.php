@@ -20,7 +20,7 @@ function get_gtm_tag( string $container_id, array $data_layer = [], string $data
 		$tag .= sprintf(
 			'<script>var %2$s = [ %3$s ];</script>',
 			sanitize_key( $data_layer_var ),
-			wp_json_encode( $data_layer )
+			wp_json_encode( wp_slash( $data_layer ) )
 		);
 	}
 
@@ -34,7 +34,7 @@ function get_gtm_tag( string $container_id, array $data_layer = [], string $data
 		<!-- End Google Tag Manager -->
 		',
 		esc_attr( $container_id ),
-		sanitize_key( $data_layer_var ),
+		sanitize_key( $data_layer_var )
 	);
 
 	return $tag;
@@ -99,7 +99,9 @@ function get_gtm_data_layer() {
 			'is_post_type_archive' => is_post_type_archive(),
 			'is_tax' => is_tax(),
 		],
-		'user' => [],
+		'user' => [
+			'role' => [],
+		],
 		'blog' => [
 			'url' => home_url(),
 			'id' => is_multisite() ? get_current_blog_id() : 0,
@@ -139,7 +141,7 @@ function get_gtm_data_layer() {
 			'author_slug' => get_user_by( 'id', $post->post_author )->get( 'user_nicename' ),
 			'published' => $post->post_date_gmt,
 			'modified' => $post->post_modified_gmt,
-			'comments' => get_comment_count( $post->ID ),
+			'comments' => get_comment_count( $post->ID )['approved'],
 			'template' => get_page_template_slug( $post->ID ),
 			'thumbnail' => get_the_post_thumbnail_url( $post->ID, 'full' ),
 		];
@@ -199,6 +201,12 @@ function get_gtm_data_layer() {
 		}
 	}
 
+	// Special case for 'home' page.
+	if ( is_home() ) {
+		$data['type'] = 'archive';
+		$data['subtype'] = 'post';
+	}
+
 	/**
 	 * Filter the dataLayer array.
 	 *
@@ -207,4 +215,43 @@ function get_gtm_data_layer() {
 	$data = apply_filters( 'hm_gtm_data_layer', $data );
 
 	return $data;
+}
+
+/**
+ * Helper for outputting tag manager data attributes.
+ *
+ * @param string $event The custom event name.
+ * @param string $on The JS event listener, default to 'click'. Supports
+ *                   any value that can be passed to addEventListener.
+ * @param string $category Optional event category.
+ * @param string $label Optional event label.
+ * @param numeric $value Optional numeric event value.
+ * @param array $fields Optional array of custom data.
+ * @return string
+ */
+function get_gtm_data_attributes( string $event, string $on = 'click', string $category = '', string $label = '', ?numeric $value = null, array $fields = [] ) : string {
+	$attrs = [
+		'data-gtm-on' => $on,
+		'data-gtm-event' => $event,
+	];
+
+	if ( ! empty( $category ) ) {
+		$attrs['data-gtm-category'] = $category;
+	}
+
+	if ( ! empty( $label ) ) {
+		$attrs['data-gtm-label'] = $label;
+	}
+
+	if ( ! empty( $value ) ) {
+		$attrs['data-gtm-value'] = $value;
+	}
+
+	if ( ! empty( $fields ) ) {
+		$attrs['data-gtm-fields'] = wp_json_encode( $fields );
+	}
+
+	return array_reduce( array_keys( $attrs ), function ( $key ) use ( $attrs ) : string {
+		return sprintf( '%s="%s" ', sanitize_key( $key ), esc_attr( $attrs[ $key ] ) );
+	}, ' ' );
 }
