@@ -15,11 +15,12 @@
  */
 function get_gtm_tag( string $container_id, array $data_layer = [], string $data_layer_var = 'dataLayer' ) : string {
 	$tag = '';
+	$data_layer_var = preg_replace( '/[^a-z0-9_\-]/i', '', $data_layer_var );
 
 	if ( ! empty( $data_layer ) ) {
 		$tag .= sprintf(
-			'<script>var %2$s = [ %3$s ];</script>',
-			sanitize_key( $data_layer_var ),
+			'<script>var %1$s = [ %2$s ];</script>',
+			$data_layer_var,
 			wp_json_encode( wp_slash( $data_layer ) )
 		);
 	}
@@ -34,7 +35,7 @@ function get_gtm_tag( string $container_id, array $data_layer = [], string $data
 		<!-- End Google Tag Manager -->
 		',
 		esc_attr( $container_id ),
-		sanitize_key( $data_layer_var )
+		$data_layer_var
 	);
 
 	return $tag;
@@ -227,9 +228,10 @@ function get_gtm_data_layer() {
  * @param string $label Optional event label.
  * @param numeric $value Optional numeric event value.
  * @param array $fields Optional array of custom data.
+ * @param strin $var Optionally override the dataLayer variable name for this event.
  * @return string
  */
-function get_gtm_data_attributes( string $event, string $on = 'click', string $category = '', string $label = '', ?numeric $value = null, array $fields = [] ) : string {
+function get_gtm_data_attributes( string $event, string $on = 'click', string $category = '', string $label = '', ?numeric $value = null, array $fields = [], string $var = '' ) : string {
 	$attrs = [
 		'data-gtm-on' => $on,
 		'data-gtm-event' => $event,
@@ -249,6 +251,10 @@ function get_gtm_data_attributes( string $event, string $on = 'click', string $c
 
 	if ( ! empty( $fields ) ) {
 		$attrs['data-gtm-fields'] = wp_json_encode( $fields );
+	}
+
+	if ( ! empty( $var ) ) {
+		$attrs['data-gtm-var'] = preg_replace( '/[^a-z0-9_\-]/i', '', $var );
 	}
 
 	return array_reduce( array_keys( $attrs ), function ( $key ) use ( $attrs ) : string {
