@@ -30,9 +30,9 @@ function bootstrap() {
 	 *
 	 * @param $enable bool If true loads the data attribute handling script.
 	 */
-	$enable_data_attributes = apply_filters( 'hm_gtm_enable_data_attributes', true );
+	$enable_event_tracking = apply_filters( 'hm_gtm_enable_event_tracking', true );
 
-	if ( $enable_data_attributes ) {
+	if ( $enable_event_tracking ) {
 		add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\\enqueue_scripts' );
 	}
 
