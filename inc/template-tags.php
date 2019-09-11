@@ -138,14 +138,17 @@ function get_gtm_data_layer() {
 		$data['post'] = [
 			'ID' => $post->ID,
 			'slug' => $post->post_name,
-			'author_ID' => $post->post_author,
-			'author_slug' => get_user_by( 'id', $post->post_author )->get( 'user_nicename' ),
 			'published' => $post->post_date_gmt,
 			'modified' => $post->post_modified_gmt,
 			'comments' => get_comment_count( $post->ID )['approved'],
 			'template' => get_page_template_slug( $post->ID ),
 			'thumbnail' => get_the_post_thumbnail_url( $post->ID, 'full' ),
 		];
+
+		if ( post_type_supports( $post->post_type, 'author' ) ) {
+			$data['post']['author_ID'] = $post->post_author;
+			$data['post']['author_slug'] = get_user_by( 'id', $post->post_author )->get( 'user_nicename' );
+		}
 
 		foreach ( get_object_taxonomies( $post->post_type, 'objects' ) as $taxonomy ) {
 			if ( ! $taxonomy->public ) {
