@@ -1,11 +1,11 @@
 <?php
 /**
-Plugin Name: Google Tag Manager tools
-Description: Provides GTM integration per site or for an entire multisite network.
-Author: Human Made Limited
-Version: 2.0.0
-Author URI: https://humanmade.com
-*/
+ * Plugin Name: Google Tag Manager tools
+ * Description: Provides GTM integration per site or for an entire multisite network.
+ * Author: Human Made Limited
+ * Version: 2.0.1
+ * Author URI: https://humanmade.com
+ */
 
 namespace HM\GTM;
 
