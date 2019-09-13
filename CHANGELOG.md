@@ -1,5 +1,9 @@
 # Changelog
 
+v2.0.1
+
+- Fix author output on post types that don't support them #17
+
 v2.0.0
 
 This major version contains breaking changes for any projects that reference the `HM_GTM` namespace or the function `HM_GTM\tag()`.
