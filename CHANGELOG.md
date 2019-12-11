@@ -2,6 +2,10 @@
 
 v2.0.1
 
+- Fix fatal error on user signup / account activation
+
+v2.0.1
+
 - Fix author output on post types that don't support them #17
 
 v2.0.0
