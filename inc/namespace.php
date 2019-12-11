@@ -191,8 +191,7 @@ function text_settings_field( array $args ) {
  * Enqueue data attribute tracking script.
  */
 function enqueue_scripts() {
-	$plugin_data = get_plugin_data( dirname( __DIR__ ) . '/plugin.php' );
-	wp_enqueue_script( 'hm-gtm', plugins_url( '/assets/events.js', dirname( __FILE__ ) ), [], $plugin_data['Version'], true );
+	wp_enqueue_script( 'hm-gtm', plugins_url( '/assets/events.js', dirname( __FILE__ ) ), [], '2.0.2', true );
 }
 
 /**
