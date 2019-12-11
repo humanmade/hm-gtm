@@ -1,6 +1,6 @@
 # Changelog
 
-v2.0.1
+v2.0.2
 
 - Fix fatal error on user signup / account activation
 
