@@ -1,6 +1,11 @@
 "use strict"
 
 document.addEventListener('DOMContentLoaded', function () {
+	// IE11 Support: https://developer.mozilla.org/en-US/docs/Web/API/NodeList/forEach#Polyfill
+	if ( window.NodeList && ! NodeList.prototype.forEach ) {
+		NodeList.prototype.forEach = Array.prototype.forEach;
+	}
+
 	document.querySelectorAll('[data-gtm-on]').forEach(function (element) {
 		var data = element.dataset,
 			trigger = data.gtmOn;
