@@ -1,5 +1,9 @@
 # Changelog
 
+The changelog is now included in [GitHub Releases](https://github.com/humanmade/hm-gtm/releases).
+
+## Prior versions
+
 v2.0.2
 
 - Fix fatal error on user signup / account activation
