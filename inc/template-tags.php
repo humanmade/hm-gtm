@@ -21,7 +21,7 @@ function get_gtm_tag( string $container_id, array $data_layer = [], string $data
 		$tag .= sprintf(
 			'<script>var %1$s = [ %2$s ];</script>',
 			$data_layer_var,
-			wp_json_encode( wp_slash( $data_layer ) )
+			wp_json_encode( $data_layer )
 		);
 	}
 
