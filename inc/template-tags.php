@@ -199,8 +199,8 @@ function get_gtm_data_layer() {
 
 			$data['subtype'] = 'author';
 			$data['author']  = [
-				'slug' => $user->get( 'user_nicename' ),
-				'name' => $user->get( 'display_name' ),
+				'slug' => $user->user_nicename,
+				'name' => $user->display_name,
 			];
 		}
 	}
