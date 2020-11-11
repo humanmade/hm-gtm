@@ -124,7 +124,16 @@ function add_site_settings() {
 		]
 	);
 
-	register_setting( 'general', 'hm_gtm_id', 'sanitize_text_field' );
+	register_setting( 
+		'general', 
+		'hm_gtm_id',
+		array(
+			'type'              => 'string',
+			'description'       => esc_html__( 'Google Tag Manager Container ID', 'hm_gtm' ),
+			'sanitize_callback' => 'sanitize_text_field',
+			'default'           => '',
+		)
+	);
 }
 
 /**
