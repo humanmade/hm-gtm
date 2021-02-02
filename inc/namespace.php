@@ -180,10 +180,10 @@ function text_settings_field( array $args ) {
 		'description' => '',
 	 ] );
 
-	printf( '<input type="text" id="%1$s" name="%1$s" value="%2$s" aria-describedby="%1$s-description" class="regular-text ltr" /><p class="description" id="%1$s-description">%3$s</p>',
+	printf( '<input type="text" id="%1$s" name="%1$s" value="%2$s" class="regular-text ltr" />%3$s',
 		esc_attr( $args['name'] ),
 		esc_attr( $args['value'] ),
-		esc_html( $args['description'] )
+		$args['description'] ? '<br /> <span class="description">' . esc_html( $args['description'] ) . '</span>' : ''
 	);
 }
 
