@@ -146,8 +146,12 @@ function get_gtm_data_layer() {
 		];
 
 		if ( post_type_supports( $post->post_type, 'author' ) ) {
-			$data['post']['author_ID'] = $post->post_author;
-			$data['post']['author_slug'] = get_user_by( 'id', $post->post_author )->get( 'user_nicename' );
+			$user = get_user_by( 'id', $post->post_author );
+
+			if ( is_a( $user, 'WP_User' ) ) {
+				$data['post']['author_ID'] = $user->ID;
+				$data['post']['author_slug'] = $user->user_nicename;
+			}
 		}
 
 		foreach ( get_object_taxonomies( $post->post_type, 'objects' ) as $taxonomy ) {
