@@ -149,7 +149,7 @@ function get_gtm_data_layer() {
 			$user = get_user_by( 'id', $post->post_author );
 
 			if ( is_a( $user, 'WP_User' ) ) {
-				$data['post']['author_ID']   = $user->ID;
+				$data['post']['author_ID'] = $user->ID;
 				$data['post']['author_slug'] = $user->user_nicename;
 			}
 		}
