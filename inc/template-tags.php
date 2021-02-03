@@ -133,15 +133,15 @@ function get_gtm_data_layer() {
 	if ( is_singular() ) {
 		$post = get_queried_object();
 
-		$data['type']    = 'post';
+		$data['type'] = 'post';
 		$data['subtype'] = $post->post_type;
-		$data['post']    = [
-			'ID'        => $post->ID,
-			'slug'      => $post->post_name,
+		$data['post'] = [
+			'ID' => $post->ID,
+			'slug' => $post->post_name,
 			'published' => $post->post_date_gmt,
-			'modified'  => $post->post_modified_gmt,
-			'comments'  => get_comment_count( $post->ID )['approved'],
-			'template'  => get_page_template_slug( $post->ID ),
+			'modified' => $post->post_modified_gmt,
+			'comments' => get_comment_count( $post->ID )['approved'],
+			'template' => get_page_template_slug( $post->ID ),
 			'thumbnail' => get_the_post_thumbnail_url( $post->ID, 'full' ),
 		];
 
