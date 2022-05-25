@@ -17,13 +17,7 @@ function get_gtm_tag( string $container_id, array $data_layer = [], string $data
 	$tag = '';
 	$data_layer_var = preg_replace( '/[^a-z0-9_\-]/i', '', $data_layer_var );
 
-	if ( ! empty( $data_layer ) ) {
-		$tag .= sprintf(
-			'<script>var %1$s = [ %2$s ];</script>',
-			$data_layer_var,
-			wp_json_encode( $data_layer )
-		);
-	}
+	$tag .= get_gtm_data_layer_tag( $data_layer, $data_layer_var );
 
 	$tag .= sprintf( '
 		<!-- Google Tag Manager -->
@@ -39,6 +33,38 @@ function get_gtm_tag( string $container_id, array $data_layer = [], string $data
 	);
 
 	return $tag;
+}
+
+/**
+ * Return the data layer JavaScript.
+ *
+ * @param array $data_layer Array of data to set as the initial dataLayer variable value.
+ * @param string $data_layer_var Optional alternative name for the dataLayer variable.
+ * @return string
+ */
+function get_gtm_data_layer_tag( array $data_layer = [], string $data_layer_var = 'dataLayer' ) {
+
+	if ( empty( $data_layer ) ) {
+		return '';
+	}
+
+	if ( apply_filters( 'hm_gtm_replace_window_datalayer', false ) ) {
+		return sprintf(
+			'<script>var %1$s = [ %2$s ];</script>',
+			$data_layer_var,
+			wp_json_encode( $data_layer )
+		);
+	}
+
+	return sprintf('
+		<script>
+		window.%1$s = window.%1$s || [];
+		window.%1$s.push([ %2$s ]);
+		</script>',
+		$data_layer_var,
+		wp_json_encode( $data_layer )
+	);
+
 }
 
 /**
