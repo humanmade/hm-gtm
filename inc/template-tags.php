@@ -18,11 +18,8 @@ function get_gtm_tag( string $container_id, array $data_layer = [], string $data
 	$data_layer_var = preg_replace( '/[^a-z0-9_\-]/i', '', $data_layer_var );
 
 	if ( ! empty( $data_layer ) ) {
-		$tag .= sprintf('
-			<script>
-			window.%1$s = window.%1$s || [];
-			window.%1$s.push([ %2$s ]);
-			</script>',
+		$tag .= sprintf(
+			'<script>window.%1$s = window.%1$s || []; window.%1$s.push([ %2$s ]);</script>',
 			$data_layer_var,
 			wp_json_encode( $data_layer )
 		);
