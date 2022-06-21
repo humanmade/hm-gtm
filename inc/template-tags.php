@@ -38,7 +38,15 @@ function get_gtm_tag( string $container_id, array $data_layer = [], string $data
 		$data_layer_var
 	);
 
-	return $tag;
+	/**
+	 * Filter the tag.
+	 *
+	 * @param string $tag HTML script tag(s) for gtag and datalayer.
+	 * @param string $container_id The container's ID eg. GTM-XXXXXXX.
+	 * @param array $data_layer Array of data to set as the initial dataLayer variable value.
+	 * @param string $data_layer_var Optional alternative name for the dataLayer variable.
+	 */
+	return apply_filters( 'hm_gtm_script_tag', $tag, $container_id, $data_layer, $data_layer_var );
 }
 
 /**
