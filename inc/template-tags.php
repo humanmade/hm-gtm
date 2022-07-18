@@ -19,7 +19,7 @@ function get_gtm_tag( string $container_id, array $data_layer = [], string $data
 
 	if ( ! empty( $data_layer ) ) {
 		$tag .= sprintf(
-			'<script>window.%1$s = window.%1$s || []; window.%1$s.push([ %2$s ]);</script>',
+			'<script>window.%1$s = window.%1$s || []; window.%1$s.push( %2$s );</script>',
 			$data_layer_var,
 			wp_json_encode( $data_layer )
 		);
