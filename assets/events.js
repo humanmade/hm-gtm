@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function () {
 			window[variable] = window[variable] || [];
 
 			data.gtmEvent && (entry.event = String(data.gtmEvent));
+			data.gtmAction && (entry.action = String(data.gtmAction));
 			data.gtmCategory && (entry.category = String(data.gtmCategory));
 			data.gtmLabel && (entry.label = String(data.gtmLabel));
 			data.gtmValue && (entry.value = Number(data.gtmValue));

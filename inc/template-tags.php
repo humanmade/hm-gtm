@@ -5,17 +5,30 @@
  * @package hm-gtm
  */
 
+use function HM\GTM\get_uuid_cookie_name;
+
 /**
  * Return the tag manager container JavaScript.
  *
  * @param string $container_id The container's ID eg. GTM-XXXXXXX.
  * @param array $data_layer Array of data to set as the initial dataLayer variable value.
  * @param string $data_layer_var Optional alternative name for the dataLayer variable.
+ * @param string $container_url Optional container URL for server side tag manager.
+ * @param string $snippet Optional custom code snippet. Some server side providers have very different approaches.
  * @return string
  */
-function get_gtm_tag( string $container_id, array $data_layer = [], string $data_layer_var = 'dataLayer' ) : string {
+function get_gtm_tag( string $container_id, array $data_layer = [], string $data_layer_var = 'dataLayer', string $container_url = '', string $snippet = '' ) : string {
 	$tag = '';
 	$data_layer_var = preg_replace( '/[^a-z0-9_\-]/i', '', $data_layer_var );
+
+	// Add UUID cookie getter.
+	if ( ! empty( get_uuid_cookie_name() ) ) {
+		$tag .= sprintf(
+			'<script>!document.cookie.match("%1$s=") && window.fetch && fetch("%2$s");</script>',
+			esc_js( get_uuid_cookie_name() ),
+			esc_js( rest_url( 'service/v1/id' ) )
+		);
+	}
 
 	if ( ! empty( $data_layer ) ) {
 		$tag .= sprintf(
@@ -25,16 +38,23 @@ function get_gtm_tag( string $container_id, array $data_layer = [], string $data
 		);
 	}
 
-	$tag .= sprintf( '
+	$snippet = $snippet ?: '
 		<!-- Google Tag Manager -->
 		<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({\'gtm.start\':
 		new Date().getTime(),event:\'gtm.js\'});var f=d.getElementsByTagName(s)[0],
 		j=d.createElement(s),dl=l!=\'dataLayer\'?\'&l=\'+l:\'\';j.async=true;j.src=
-		\'https://www.googletagmanager.com/gtm.js?id=\'+i+dl;f.parentNode.insertBefore(j,f);
-		})(window,document,\'script\',\'%2$s\',\'%1$s\');</script>
+		\'%2$s/gtm.js?id=\'+i+dl;f.parentNode.insertBefore(j,f);
+		})(window,document,\'script\',\'%3$s\',\'%1$s\');</script>
 		<!-- End Google Tag Manager -->
-		',
+		';
+
+	// Ensure requested data layer var name is used.
+	$snippet = str_replace( '\'script\',\'dataLayer\'', "'script','$data_layer_var'", $snippet );
+
+	$tag .= sprintf(
+		$snippet,
 		esc_attr( $container_id ),
+		esc_js( untrailingslashit( $container_url ?: 'https://www.googletagmanager.com' ) ),
 		$data_layer_var
 	);
 
@@ -55,25 +75,33 @@ function get_gtm_tag( string $container_id, array $data_layer = [], string $data
  * @param string $container_id The container's ID eg. GTM-XXXXXXX.
  * @param array $data_layer Array of data to set as the initial dataLayer variable value.
  * @param string $data_layer_var Optional alternative name for the dataLayer variable.
+ * @param string $container_url Optional container URL for server side tag manager.
+ * @param string $snippet Optional custom code snippet.
  */
-function gtm_tag( string $container_id, array $data_layer = [], string $data_layer_var = 'dataLayer' ) {
-	echo get_gtm_tag( $container_id, $data_layer, $data_layer_var );
+function gtm_tag( string $container_id, array $data_layer = [], string $data_layer_var = 'dataLayer', string $container_url = '', string $snippet = '' ) {
+	echo get_gtm_tag( ...func_get_args() );
 }
 
 /**
  * Return the tag manager container iframe.
  *
  * @param string $container_id The container's ID eg. GTM-XXXXXXX.
+ * @param string $container_url Optional container URL for server side tag manager.
+ * @param string $snippet Optional custom code snippet to use.
  * @return string
  */
-function get_gtm_tag_iframe( string $container_id ) : string {
-	return sprintf( '
+function get_gtm_tag_iframe( string $container_id, string $container_url = '', string $snippet = '' ) : string {
+	$snippet = $snippet ?: '
 		<!-- Google Tag Manager (noscript) -->
-		<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=%1$s"
+		<noscript><iframe src="%2$s/ns.html?id=%1$s"
 		height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 		<!-- End Google Tag Manager (noscript) -->
-		',
-		esc_attr( $container_id )
+		';
+
+	return sprintf(
+		$snippet,
+		esc_attr( $container_id ),
+		esc_attr( untrailingslashit( $container_url ?: 'https://www.googletagmanager.com' ) ),
 	);
 }
 
@@ -81,9 +109,11 @@ function get_gtm_tag_iframe( string $container_id ) : string {
  * Output the tag manager container JavaScript.
  *
  * @param string $container_id The container's ID eg. GTM-XXXXXXX.
+ * @param string $container_url Optional container URL for server side tag manager.
+ * @param string $snippet Optional custom code snippet to use.
  */
-function gtm_tag_iframe( string $container_id ) {
-	echo get_gtm_tag_iframe( $container_id );
+function gtm_tag_iframe( string $container_id, string $container_url = '', string $snippet = '' ) {
+	echo get_gtm_tag_iframe( ...func_get_args() );
 }
 
 /**

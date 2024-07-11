@@ -17,12 +17,16 @@ use WP_Admin_Bar;
 function bootstrap() {
 	// Tag output.
 	add_action( 'wp_head', __NAMESPACE__ . '\\output_tag', 1, 0 );
-	add_action( 'after_body', __NAMESPACE__ . '\\output_tag', 1, 0 );
+	add_action( 'wp_body_open', __NAMESPACE__ . '\\output_tag', 1, 0 );
+	add_action( 'after_body', __NAMESPACE__ . '\\output_tag', 1, 0 ); // Deprecated.
 
 	// Admin features.
 	add_action( 'admin_init', __NAMESPACE__ . '\\add_site_settings' );
 	add_action( 'wpmu_options', __NAMESPACE__ . '\\add_network_settings' );
 	add_action( 'update_wpmu_options', __NAMESPACE__ . '\\save_network_settings' );
+
+	// UUID cookie service.
+	add_action( 'rest_api_init', __NAMESPACE__ . '\\uuid_cookie_endpoint' );
 
 	// Custom event tracking JS.
 	/**
@@ -42,7 +46,7 @@ function bootstrap() {
 	 *
 	 * @param $show bool If true the UI is displayed.
 	 */
-	$show_data_layer_ui = apply_filters( 'hm_gtm_show_data_layer_ui', false );
+	$show_data_layer_ui = apply_filters( 'hm_gtm_show_data_layer_ui', true );
 
 	if ( $show_data_layer_ui ) {
 		add_action( 'admin_bar_menu', __NAMESPACE__ . '\\admin_bar_data_layer_ui', 100 );
@@ -51,9 +55,58 @@ function bootstrap() {
 }
 
 /**
+ * Retrieve the service UUID cookie name for cookie restoration.
+ *
+ * @return string
+ */
+function get_uuid_cookie_name() : string {
+	return (string) get_option( 'hm_gtm_cookie', 'serviceid_' . COOKIEHASH );
+}
+
+/**
+ * Fires when preparing to serve a REST API request.
+ */
+function uuid_cookie_endpoint() : void {
+	register_rest_route(
+		'service/v1',
+		'id',
+		[
+			'methods' => 'GET',
+			'callback' => function () {
+				$cookie_name = get_uuid_cookie_name();
+				$cookie_value = $_COOKIE[ $cookie_name ] ?? '';
+
+				if ( empty( $cookie_value ) ) {
+					$cookie_value = wp_generate_uuid4();
+				}
+
+				setcookie( $cookie_name, $cookie_value, [
+					'expires' => time() + ( YEAR_IN_SECONDS * 2 ),
+					'path'     => '/',
+					'domain'   => '.' . wp_parse_url( home_url(), PHP_URL_HOST ),
+					'secure'   => true,
+					'httponly' => false,
+					'samesite' => 'lax',
+				] );
+
+				// Endpoint cannot be cached by CDN or batcache.
+				nocache_headers();
+
+				return rest_ensure_response( $cookie_value );
+			},
+			'permission_callback' => '__return_true',
+		]
+	);
+}
+
+/**
  * Outputs the gtm tag, place this immediately after the opening <body> tag
  */
 function output_tag() {
+	if ( doing_action( 'after_body' ) ) {
+		_deprecated_hook( 'after_body', '3.0.0', 'wp_body_open', 'From version 3.0.0 of the HM GTM plugin you should use the `wp_open_body()` function instead of `do_action(\'after_body\')` for classic themes.' );
+	}
+
 	/**
 	 * Filter the hm_gtm_id variable to support other methods of setting this value.
 	 *
@@ -61,12 +114,20 @@ function output_tag() {
 	 */
 	$site_container_id = apply_filters( 'hm_gtm_id', get_option( 'hm_gtm_id', false ) );
 
+	$site_container_url = get_option( 'hm_gtm_url', '' );
+	$site_container_snippet = get_option( 'hm_gtm_snippet', '' );
+	$site_container_snippet_iframe = get_option( 'hm_gtm_snippet_iframe', '' );
+
 	/**
 	 * Filter the hm_gtm_network_id variable to support other methods of setting this value.
 	 *
 	 * @param string $network_container_id The network GTM container ID.
 	 */
 	$network_container_id = apply_filters( 'hm_gtm_network_id', get_site_option( 'hm_gtm_network_id', false ) );
+
+	$network_container_url = get_site_option( 'hm_gtm_network_url', '' );
+	$network_container_snippet = get_site_option( 'hm_gtm_network_snippet', '' );
+	$network_container_snippet_iframe = get_site_option( 'hm_gtm_network_snippet_iframe', '' );
 
 	/**
 	 * Filter the dataLayer variable name. Tag manager allow for
@@ -79,21 +140,21 @@ function output_tag() {
 	if ( doing_action( 'wp_head' ) ) {
 		// If it's the head action output the JS and dataLayer.
 		if ( $network_container_id ) {
-			gtm_tag( $network_container_id, get_gtm_data_layer(), $data_layer_var );
+			gtm_tag( $network_container_id, get_gtm_data_layer(), $data_layer_var, $network_container_url, $network_container_snippet );
 		}
 
 		if ( $site_container_id ) {
-			gtm_tag( $site_container_id, $network_container_id ? [] : get_gtm_data_layer(), $data_layer_var );
+			gtm_tag( $site_container_id, $network_container_id ? [] : get_gtm_data_layer(), $data_layer_var, $site_container_url, $site_container_snippet );
 		}
 	} else {
 		// If the tag is called directly or on another action output the noscript fallback.
 		// This gives us back compat and noscript support in one go.
 		if ( $network_container_id ) {
-			gtm_tag_iframe( $network_container_id );
+			gtm_tag_iframe( $network_container_id, $network_container_url, $network_container_snippet_iframe );
 		}
 
 		if ( $site_container_id ) {
-			gtm_tag_iframe( $site_container_id );
+			gtm_tag_iframe( $site_container_id, $site_container_url, $site_container_snippet_iframe );
 		}
 	}
 }
@@ -102,7 +163,6 @@ function output_tag() {
  * Add admin settings.
  */
 function add_site_settings() {
-	// add settings section
 	add_settings_section(
 		'hm_gtm',
 		esc_html__( 'Google Tag Manager', 'hm_gtm' ),
@@ -110,10 +170,10 @@ function add_site_settings() {
 		'general'
 	);
 
-	// add settings field
+	// Fields.
 	add_settings_field(
 		'hm_gtm_id_field',
-		esc_html__( 'Container ID', 'hm_gtm' ),
+		esc_html__( 'Container ID (Required)', 'hm_gtm' ),
 		__NAMESPACE__ . '\\text_settings_field',
 		'general',
 		'hm_gtm',
@@ -124,13 +184,148 @@ function add_site_settings() {
 		]
 	);
 
-	register_setting( 
-		'general', 
+	register_setting(
+		'general',
 		'hm_gtm_id',
 		[
 			'type' => 'string',
 			'description' => esc_html__( 'Google Tag Manager Container ID', 'hm_gtm' ),
 			'sanitize_callback' => 'sanitize_text_field',
+			'default' => '',
+		]
+	);
+
+	add_settings_field(
+		'hm_gtm_url_field',
+		esc_html__( 'Container URL', 'hm_gtm' ),
+		__NAMESPACE__ . '\\text_settings_field',
+		'general',
+		'hm_gtm',
+		[
+			'value'       => get_option( 'hm_gtm_url', '' ),
+			'name'        => 'hm_gtm_url',
+			'description' => esc_html__( 'If you are using server side Tag Manager, enter the server container URL here, typically just the custom domain, or path if using a reverse proxy.', 'hm_gtm' ),
+		]
+	);
+
+	register_setting(
+		'general',
+		'hm_gtm_url',
+		[
+			'type' => 'string',
+			'description' => esc_html__( 'Google Tag Manager Container URL', 'hm_gtm' ),
+			'sanitize_callback' => function ( $value ) {
+				if ( empty( $value ) ) {
+					return $value;
+				}
+
+				// If a relative path is provided then make it absolute.
+				if ( strpos( $value, 'http' ) === false ) {
+					$value = home_url( $value );
+				}
+
+				return sanitize_url( $value );
+			},
+			'default' => '',
+		]
+	);
+
+	add_settings_field(
+		'hm_gtm_cookie_field',
+		esc_html__( 'Cookie restoration / master cookie name', 'hm_gtm' ),
+		__NAMESPACE__ . '\\text_settings_field',
+		'general',
+		'hm_gtm',
+		[
+			'value'       => get_option( 'hm_gtm_cookie', get_uuid_cookie_name() ),
+			'name'        => 'hm_gtm_cookie',
+			'description' => esc_html__( 'Some server side Tag Manager providers support restoring expired cookies from a master cookie value. Use the default cookie name defined here or configure it to match your provider\'s expected name.', 'hm_gtm' ),
+		]
+	);
+
+	register_setting(
+		'general',
+		'hm_gtm_cookie',
+		[
+			'type' => 'string',
+			'description' => esc_html__( 'Google Tag Manager Container URL', 'hm_gtm' ),
+			'sanitize_callback' => 'sanitize_key',
+			'default' => get_uuid_cookie_name(),
+		]
+	);
+
+	add_settings_field(
+		'hm_gtm_snippet_field',
+		esc_html__( 'Custom code snippet', 'hm_gtm' ),
+		__NAMESPACE__ . '\\textarea_settings_field',
+		'general',
+		'hm_gtm',
+		[
+			'value'       => get_option( 'hm_gtm_snippet', '' ),
+			'name'        => 'hm_gtm_snippet',
+			'description' => esc_html__( 'Some server side Tag Manager providers use a code snippet that is different to the standard one. Paste it here if you are provided with one or simply unsure.', 'hm_gtm' ),
+		]
+	);
+
+	register_setting(
+		'general',
+		'hm_gtm_snippet',
+		[
+			'type' => 'string',
+			'description' => esc_html__( 'Google Tag Manager Container Snippet', 'hm_gtm' ),
+			'sanitize_callback' => function ( $value ) {
+				return trim( $value );
+			},
+			'default' => '',
+		]
+	);
+
+	add_settings_field(
+		'hm_gtm_snippet_iframe_field',
+		esc_html__( 'Custom iframe code snippet ', 'hm_gtm' ),
+		__NAMESPACE__ . '\\textarea_settings_field',
+		'general',
+		'hm_gtm',
+		[
+			'value'       => get_option( 'hm_gtm_snippet_iframe', '' ),
+			'name'        => 'hm_gtm_snippet_iframe',
+			'description' => esc_html__( 'Some server side Tag Manager providers use a code snippet that is different to the standard one. Usually it is enough to provide the custom container URL value above.', 'hm_gtm' ),
+		]
+	);
+
+	register_setting(
+		'general',
+		'hm_gtm_snippet_iframe',
+		[
+			'type' => 'string',
+			'description' => esc_html__( 'Google Tag Manager Iframe Container Snippet', 'hm_gtm' ),
+			'sanitize_callback' => function ( $value ) {
+				return trim( $value );
+			},
+			'default' => '',
+		]
+	);
+
+	add_settings_field(
+		'hm_gtm_show_datalayer_field',
+		esc_html__( 'Show data layer in admin bar', 'hm_gtm' ),
+		__NAMESPACE__ . '\\checkbox_settings_field',
+		'general',
+		'hm_gtm',
+		[
+			'value'       => get_option( 'hm_gtm_show_datalayer', false ),
+			'name'        => 'hm_gtm_show_datalayer',
+			'description' => esc_html__( 'Show the available data layer values for the current page in the admin bar', 'hm_gtm' ),
+		]
+	);
+
+	register_setting(
+		'general',
+		'hm_gtm_show_datalayer',
+		[
+			'type' => 'string',
+			'description' => esc_html__( 'Show Google Tag Manager Data Layer', 'hm_gtm' ),
+			'sanitize_callback' => 'absint',
 			'default' => '',
 		]
 	);
@@ -145,7 +340,7 @@ function add_network_settings() {
 	<table id="menu" class="form-table">
 		<tr valign="top">
 			<th scope="row">
-				<label for="hm_gtm_network_id"><?php esc_html_e( 'Container ID', 'hm_gtm' ); ?></label>
+				<label for="hm_gtm_network_id"><?php esc_html_e( 'Container ID (Required)', 'hm_gtm' ); ?></label>
 			</th>
 			<td>
 				<?php
@@ -153,6 +348,42 @@ function add_network_settings() {
 						'name'       => 'hm_gtm_network_id',
 						'value'      => get_site_option( 'hm_gtm_network_id' ),
 						'decription' => esc_html__( 'Enter your network container ID eg. GTM-123ABC', 'hm_gtm' ),
+					] );
+				?>
+			</td>
+			<th scope="row">
+				<label for="hm_gtm_network_url"><?php esc_html_e( 'Container URL', 'hm_gtm' ); ?></label>
+			</th>
+			<td>
+				<?php
+					text_settings_field( [
+						'name'       => 'hm_gtm_network_url',
+						'value'      => get_site_option( 'hm_gtm_network_url' ),
+						'decription' => esc_html__( 'If using server side Tag Manager, enter your network container URL', 'hm_gtm' ),
+					] );
+				?>
+			</td>
+			<th scope="row">
+				<label for="hm_gtm_network_snippet"><?php esc_html_e( 'Custom Container Snippet', 'hm_gtm' ); ?></label>
+			</th>
+			<td>
+				<?php
+					textarea_settings_field( [
+						'name'       => 'hm_gtm_network_snippet',
+						'value'      => get_site_option( 'hm_gtm_network_snippet' ),
+						'decription' => esc_html__( 'If using server side Tag Manager, you may be given a customised code snippet. Enter it here.', 'hm_gtm' ),
+					] );
+				?>
+			</td>
+			<th scope="row">
+				<label for="hm_gtm_network_snippet_iframe"><?php esc_html_e( 'Custom Container Iframe Snippet', 'hm_gtm' ); ?></label>
+			</th>
+			<td>
+				<?php
+					textarea_settings_field( [
+						'name'       => 'hm_gtm_network_snippet_iframe',
+						'value'      => get_site_option( 'hm_gtm_network_snippet_iframe' ),
+						'decription' => esc_html__( 'If your server side container provider gives you a custom iframe snippet, enter it here.', 'hm_gtm' ),
 					] );
 				?>
 			</td>
@@ -166,7 +397,16 @@ function add_network_settings() {
  */
 function save_network_settings() {
 	if ( isset( $_POST['hm_gtm_network_id'] ) ) {
-		update_site_option( 'hm_gtm_network_id', sanitize_text_field( $_POST['hm_gtm_network_id'] ) );
+		update_site_option( 'hm_gtm_network_id', sanitize_text_field( wp_unslash( $_POST['hm_gtm_network_id'] ) ) );
+	}
+	if ( isset( $_POST['hm_gtm_network_url'] ) ) {
+		update_site_option( 'hm_gtm_network_url', sanitize_url( wp_unslash( $_POST['hm_gtm_network_url'] ) ) );
+	}
+	if ( isset( $_POST['hm_gtm_network_snippet'] ) ) {
+		update_site_option( 'hm_gtm_network_snippet', sanitize_textarea_field( wp_unslash( $_POST['hm_gtm_network_snippet'] ) ) );
+	}
+	if ( isset( $_POST['hm_gtm_network_snippet_iframe'] ) ) {
+		update_site_option( 'hm_gtm_network_snippet_iframe', sanitize_textarea_field( wp_unslash( $_POST['hm_gtm_network_snippet_iframe'] ) ) );
 	}
 }
 
@@ -187,7 +427,7 @@ function text_settings_field( array $args ) {
 		'name'        => '',
 		'value'       => '',
 		'description' => '',
-	 ] );
+	] );
 
 	printf( '<input type="text" id="%1$s" name="%1$s" value="%2$s" class="regular-text ltr" %3$s/>%4$s',
 		esc_attr( $args['name'] ),
@@ -198,10 +438,49 @@ function text_settings_field( array $args ) {
 }
 
 /**
+ * Textarea field for GTM container IDs.
+ *
+ * @param array $args The field settings.
+ */
+function textarea_settings_field( array $args ) {
+	$args = wp_parse_args( $args, [
+		'name'        => '',
+		'value'       => '',
+		'description' => '',
+	] );
+
+	printf( '<textarea id="%1$s" name="%1$s" rows="6" cols="100%%" %3$s>%2$s</textarea>%4$s',
+		esc_attr( $args['name'] ),
+		esc_textarea( $args['value'] ),
+		$args['description'] ? 'aria-describedby="' . esc_attr( $args['name'] ) . '-description" ' : '',
+		$args['description'] ? '<p class="description" id="' . esc_attr( $args['name'] ) . '-description">' . esc_html( $args['description'] ) . '</p>' : ''
+	);
+}
+
+/**
+ * Checkbox field for GTM container IDs.
+ *
+ * @param array $args The field settings.
+ */
+function checkbox_settings_field( array $args ) {
+	$args = wp_parse_args( $args, [
+		'name'        => '',
+		'value'       => '',
+		'description' => '',
+	] );
+
+	printf( '<label for="%1$s"><input type="checkbox" id="%1$s" name="%1$s" value="1" %2$s /> %3$s</label>',
+		esc_attr( $args['name'] ),
+		checked( true, (bool) get_option( 'hm_gtm_show_datalayer', false ), false ),
+		$args['description'] ? esc_html( $args['description'] ) : ''
+	);
+}
+
+/**
  * Enqueue data attribute tracking script.
  */
 function enqueue_scripts() {
-	wp_enqueue_script( 'hm-gtm', plugins_url( '/assets/events.js', dirname( __FILE__ ) ), [], '2.0.2', true );
+	wp_enqueue_script( 'hm-gtm', plugins_url( '/assets/events.js', dirname( __FILE__ ) ), [], VERSION, true );
 }
 
 /**
@@ -210,15 +489,22 @@ function enqueue_scripts() {
  * @param WP_Admin_Bar $admin_bar
  */
 function admin_bar_data_layer_ui( WP_Admin_Bar $admin_bar ) {
+	// Front end only.
+	if ( is_admin() ) {
+		return;
+	}
+
+	// Settings check.
+	if ( ! ( (bool) get_option( 'hm_gtm_show_datalayer', false ) ) ) {
+		return;
+	}
+
 	// Capability check.
 	if ( ! current_user_can( 'hm_gtm_data_layer' ) ) {
 		return;
 	}
 
-	// Front end only.
-	if ( is_admin() ) {
-		return;
-	}
+	die('here');
 
 	// Get the data layer object.
 	$data_layer = get_gtm_data_layer();
@@ -228,7 +514,10 @@ function admin_bar_data_layer_ui( WP_Admin_Bar $admin_bar ) {
 		'id' => 'hm-gtm',
 		'title' => '
 			<span class="ab-icon dashicons-filter"></span>
-			<span class="ab-label">' . __( 'Data Layer', 'hm-gtm' ) . '</span>',
+			<span class="ab-label">' . __( 'GTM Data Layer', 'hm-gtm' ) . '</span>',
+		'meta' => [
+			'html' => 'html here',
+		],
 	] );
 
 	foreach ( $data_layer as $key => $value ) {
@@ -272,7 +561,7 @@ function flatten_array( array $data, string $prefix = '' ) : array {
  */
 function view_data_layer_cap( array $caps, string $cap, int $user_id ) {
 	if ( $cap === 'hm_gtm_data_layer' && user_can( $user_id, 'manage_options' ) ) {
-		$caps[] = 'manage_options';
+		$caps[] = 'hm_gtm_data_layer';
 	}
 
 	return $caps;
