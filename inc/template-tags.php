@@ -15,7 +15,7 @@
  */
 function get_gtm_tag( string $container_id, array $data_layer = [], string $data_layer_var = 'dataLayer' ) : string {
 	$tag = '';
-	$data_layer_var = preg_replace( '/[^a-z0-9_\-]/i', '', $data_layer_var );
+	$data_layer_var = preg_replace( '/[^a-z0-9_]/i', '', $data_layer_var );
 
 	if ( ! empty( $data_layer ) ) {
 		$tag .= sprintf(
