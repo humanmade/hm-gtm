@@ -56,63 +56,6 @@ function bootstrap() {
 }
 
 /**
- * Retrieve the service UUID cookie name for cookie restoration.
- *
- * @return string
- */
-function get_uuid_cookie_name() : string {
-	return (string) get_option( 'hm_gtm_cookie', 'serviceid_' . COOKIEHASH );
-}
-
-/**
- * Fires when preparing to serve a REST API request.
- */
-function uuid_cookie_endpoint() : void {
-	register_rest_route(
-		'service/v1',
-		'id',
-		[
-			'methods' => 'GET',
-			'callback' => function ( WP_REST_Request $request ) {
-				$cookie_name = get_uuid_cookie_name();
-				$cookie_value = $_COOKIE[ $cookie_name ] ?? '';
-
-				// Generate or get param from localStorage if defined.
-				if ( ! wp_is_uuid( $cookie_value ) ) {
-					$restored_value = $request->get_param( 'id' );
-					$cookie_value = wp_is_uuid( $restored_value ) ? $restored_value : wp_generate_uuid4();
-				}
-
-				// Preserve UUID for logged in users.
-				if ( is_user_logged_in() ) {
-					$uuid = get_user_meta( get_current_user_id(), '_hm_gtm_uuid', true );
-					if ( ! wp_is_uuid( $uuid ) ) {
-						update_user_meta( get_current_user_id(), '_hm_gtm_uuid', $cookie_value );
-					} else {
-						$cookie_value = $uuid;
-					}
-				}
-
-				setcookie( $cookie_name, $cookie_value, [
-					'expires' => time() + ( YEAR_IN_SECONDS * 2 ),
-					'path'     => '/',
-					'domain'   => '.' . wp_parse_url( home_url(), PHP_URL_HOST ),
-					'secure'   => true,
-					'httponly' => false,
-					'samesite' => 'lax',
-				] );
-
-				// Endpoint cannot be cached by CDN or batcache.
-				nocache_headers();
-
-				return rest_ensure_response( [ 'id' => $cookie_value ] );
-			},
-			'permission_callback' => '__return_true',
-		]
-	);
-}
-
-/**
  * Outputs the gtm tag, place this immediately after the opening <body> tag
  */
 function output_tag() {
@@ -486,6 +429,63 @@ function checkbox_settings_field( array $args ) {
 		esc_attr( $args['name'] ),
 		checked( true, (bool) get_option( 'hm_gtm_show_datalayer', false ), false ),
 		$args['description'] ? esc_html( $args['description'] ) : ''
+	);
+}
+
+/**
+ * Retrieve the service UUID cookie name for cookie restoration.
+ *
+ * @return string
+ */
+function get_uuid_cookie_name() : string {
+	return (string) get_option( 'hm_gtm_cookie', 'serviceid_' . COOKIEHASH );
+}
+
+/**
+ * Fires when preparing to serve a REST API request.
+ */
+function uuid_cookie_endpoint() : void {
+	register_rest_route(
+		'service/v1',
+		'id',
+		[
+			'methods' => 'GET',
+			'callback' => function ( WP_REST_Request $request ) {
+				$cookie_name = get_uuid_cookie_name();
+				$cookie_value = $_COOKIE[ $cookie_name ] ?? '';
+
+				// Generate or get param from localStorage if defined.
+				if ( ! wp_is_uuid( $cookie_value ) ) {
+					$restored_value = $request->get_param( 'id' );
+					$cookie_value = wp_is_uuid( $restored_value ) ? $restored_value : wp_generate_uuid4();
+				}
+
+				// Preserve UUID for logged in users.
+				if ( is_user_logged_in() ) {
+					$uuid = get_user_meta( get_current_user_id(), '_hm_gtm_uuid', true );
+					if ( ! wp_is_uuid( $uuid ) ) {
+						update_user_meta( get_current_user_id(), '_hm_gtm_uuid', $cookie_value );
+					} else {
+						$cookie_value = $uuid;
+					}
+				}
+
+				setcookie( $cookie_name, $cookie_value, [
+					'expires' => time() + ( YEAR_IN_SECONDS * 2 ),
+					'path'     => '/',
+					'domain'   => '.' . wp_parse_url( home_url(), PHP_URL_HOST ),
+					'secure'   => true,
+					'httponly' => false,
+					'samesite' => 'lax',
+				] );
+
+				// Endpoint cannot be cached by CDN or batcache.
+				nocache_headers();
+
+				return rest_ensure_response( [ 'id' => $cookie_value ] );
+			},
+			'permission_callback' => '__return_true',
+		]
 	);
 }
 
