@@ -3,7 +3,7 @@
  * Plugin Name: Google Tag Manager tools
  * Description: Provides GTM integration per site or for an entire multisite network.
  * Author: Human Made Limited
- * Version: 2.0.7
+ * Version: 2.1.2
  * Author URI: https://humanmade.com
  */
 
