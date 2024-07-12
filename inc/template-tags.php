@@ -24,7 +24,7 @@ function get_gtm_tag( string $container_id, array $data_layer = [], string $data
 	// Add UUID cookie getter.
 	if ( ! empty( get_uuid_cookie_name() ) ) {
 		$tag .= sprintf(
-			'<script>!document.cookie.match("%1$s=") && window.fetch && fetch("%2$s");</script>',
+			'<script>(function(d,f,l){!d.cookie.match("%1$s=")&&f&&f("%2$s?id="+(l&&l.getItem("%1$s"))).then(function(r){return r.json()}).then(function(d){l&&l.setItem("%1$s",d.id)})})(document,window.fetch,window.localStorage)</script>',
 			esc_js( get_uuid_cookie_name() ),
 			esc_js( rest_url( 'service/v1/id' ) )
 		);

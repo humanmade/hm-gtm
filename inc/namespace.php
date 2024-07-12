@@ -8,6 +8,7 @@
 namespace HM\GTM;
 
 use WP_Admin_Bar;
+use WP_REST_Request;
 
 /**
  * Set up actions and filters.
@@ -72,12 +73,24 @@ function uuid_cookie_endpoint() : void {
 		'id',
 		[
 			'methods' => 'GET',
-			'callback' => function () {
+			'callback' => function ( WP_REST_Request $request ) {
 				$cookie_name = get_uuid_cookie_name();
 				$cookie_value = $_COOKIE[ $cookie_name ] ?? '';
 
-				if ( empty( $cookie_value ) ) {
-					$cookie_value = wp_generate_uuid4();
+				// Generate or get param from localStorage if defined.
+				if ( ! wp_is_uuid( $cookie_value ) ) {
+					$restored_value = $request->get_param( 'id' );
+					$cookie_value = wp_is_uuid( $restored_value ) ? $restored_value : wp_generate_uuid4();
+				}
+
+				// Preserve UUID for logged in users.
+				if ( is_user_logged_in() ) {
+					$uuid = get_user_meta( get_current_user_id(), '_hm_gtm_uuid', true );
+					if ( ! wp_is_uuid( $uuid ) ) {
+						update_user_meta( get_current_user_id(), '_hm_gtm_uuid', $cookie_value );
+					} else {
+						$cookie_value = $uuid;
+					}
 				}
 
 				setcookie( $cookie_name, $cookie_value, [
@@ -92,7 +105,7 @@ function uuid_cookie_endpoint() : void {
 				// Endpoint cannot be cached by CDN or batcache.
 				nocache_headers();
 
-				return rest_ensure_response( $cookie_value );
+				return rest_ensure_response( [ 'id' => $cookie_value ] );
 			},
 			'permission_callback' => '__return_true',
 		]
