@@ -210,57 +210,60 @@ function add_site_settings() {
 		]
 	);
 
-	add_settings_field(
-		'hm_gtm_snippet_field',
-		esc_html__( 'Custom code snippet', 'hm_gtm' ),
-		__NAMESPACE__ . '\\textarea_settings_field',
-		'general',
-		'hm_gtm',
-		[
-			'value'       => get_option( 'hm_gtm_snippet', '' ),
-			'name'        => 'hm_gtm_snippet',
-			'description' => esc_html__( 'Some server side Tag Manager providers use a code snippet that is different to the standard one. Paste it here if you are provided with one or simply unsure.', 'hm_gtm' ),
-		]
-	);
+	// Extra permissions check for super admin privilege on multisite to enter custom JS code.
+	if ( ( ! is_multisite() && current_user_can( 'manage_options' ) ) || is_super_admin() ) {
+		add_settings_field(
+			'hm_gtm_snippet_field',
+			esc_html__( 'Custom code snippet', 'hm_gtm' ),
+			__NAMESPACE__ . '\\textarea_settings_field',
+			'general',
+			'hm_gtm',
+			[
+				'value'       => get_option( 'hm_gtm_snippet', '' ),
+				'name'        => 'hm_gtm_snippet',
+				'description' => esc_html__( 'Some server side Tag Manager providers use a code snippet that is different to the standard one. Paste it here if you are provided with one or if you are unsure.', 'hm_gtm' ),
+			]
+		);
 
-	register_setting(
-		'general',
-		'hm_gtm_snippet',
-		[
-			'type' => 'string',
-			'description' => esc_html__( 'Google Tag Manager Container Snippet', 'hm_gtm' ),
-			'sanitize_callback' => function ( $value ) {
-				return trim( $value );
-			},
-			'default' => '',
-		]
-	);
+		register_setting(
+			'general',
+			'hm_gtm_snippet',
+			[
+				'type' => 'string',
+				'description' => esc_html__( 'Google Tag Manager Container Snippet', 'hm_gtm' ),
+				'sanitize_callback' => function ( $value ) {
+					return trim( $value );
+				},
+				'default' => '',
+			]
+		);
 
-	add_settings_field(
-		'hm_gtm_snippet_iframe_field',
-		esc_html__( 'Custom iframe code snippet ', 'hm_gtm' ),
-		__NAMESPACE__ . '\\textarea_settings_field',
-		'general',
-		'hm_gtm',
-		[
-			'value'       => get_option( 'hm_gtm_snippet_iframe', '' ),
-			'name'        => 'hm_gtm_snippet_iframe',
-			'description' => esc_html__( 'Some server side Tag Manager providers use a code snippet that is different to the standard one. Usually it is enough to provide the custom container URL value above.', 'hm_gtm' ),
-		]
-	);
+		add_settings_field(
+			'hm_gtm_snippet_iframe_field',
+			esc_html__( 'Custom iframe code snippet', 'hm_gtm' ),
+			__NAMESPACE__ . '\\textarea_settings_field',
+			'general',
+			'hm_gtm',
+			[
+				'value'       => get_option( 'hm_gtm_snippet_iframe', '' ),
+				'name'        => 'hm_gtm_snippet_iframe',
+				'description' => esc_html__( 'Some server side Tag Manager providers use a code snippet that is different to the standard one. Usually it is enough to provide the custom container URL value above.', 'hm_gtm' ),
+			]
+		);
 
-	register_setting(
-		'general',
-		'hm_gtm_snippet_iframe',
-		[
-			'type' => 'string',
-			'description' => esc_html__( 'Google Tag Manager Iframe Container Snippet', 'hm_gtm' ),
-			'sanitize_callback' => function ( $value ) {
-				return trim( $value );
-			},
-			'default' => '',
-		]
-	);
+		register_setting(
+			'general',
+			'hm_gtm_snippet_iframe',
+			[
+				'type' => 'string',
+				'description' => esc_html__( 'Google Tag Manager Iframe Container Snippet', 'hm_gtm' ),
+				'sanitize_callback' => function ( $value ) {
+					return trim( $value );
+				},
+				'default' => '',
+			]
+		);
+	}
 
 	add_settings_field(
 		'hm_gtm_show_datalayer_field',
@@ -367,10 +370,12 @@ function save_network_settings() {
 }
 
 /**
- * Noop settings section callback.
+ * Settings section callback.
  */
 function settings_section() {
-	// void
+	if ( is_multisite() && ! is_super_admin() ) {
+		printf( '<p>%s</p>', esc_html__( 'If you need to enter a custom code snippet for server side Tag Manager, please contact a network super admin to add this for you.', 'hm_gtm' ) );
+	}
 }
 
 /**
@@ -525,8 +530,6 @@ function admin_bar_data_layer_ui( WP_Admin_Bar $admin_bar ) {
 	if ( ! current_user_can( 'hm_gtm_data_layer' ) ) {
 		return;
 	}
-
-	die('here');
 
 	// Get the data layer object.
 	$data_layer = get_gtm_data_layer();

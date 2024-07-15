@@ -164,7 +164,7 @@ function get_gtm_data_layer() {
 		$user = wp_get_current_user();
 		$data['user']['logged_in'] = true;
 		$data['user']['id'] = get_current_user_id();
-		$data['user']['role'] = array_keys( $user->caps );
+		$data['user']['role'] = implode( ',', array_keys( $user->caps ) );
 	}
 
 	/**
@@ -177,6 +177,7 @@ function get_gtm_data_layer() {
 		$data['subtype'] = $post->post_type;
 		$data['post'] = [
 			'id' => $post->ID,
+			'title' => $post->post_title,
 			'slug' => $post->post_name,
 			'published' => $post->post_date_gmt,
 			'modified' => $post->post_modified_gmt,
@@ -193,17 +194,14 @@ function get_gtm_data_layer() {
 			if ( function_exists( '\\Authorship\\get_authors' ) ) {
 				$authors = \Authorship\get_authors( $post );
 				if ( ! empty( $authors ) ) {
-					$data['post']['author_id'] = $authors[0]->ID;
-					$data['post']['author_slug'] = $authors[0]->user_nicename;
-					$data['post']['author_ids'] = implode( ',', wp_list_pluck( $authors, 'ID' ) );
-					$data['post']['author_slugs'] = implode( ',', wp_list_pluck( $authors, 'user_nicename' ) );
+					$data['post']['author_name'] = $authors[0]->display_name;
+					$data['post']['author_names'] = implode( ',', wp_list_pluck( $authors, 'display_name' ) );
 				}
 			} else {
 				$user = get_user_by( 'id', $post->post_author );
 
 				if ( is_a( $user, 'WP_User' ) ) {
-					$data['post']['author_id'] = $user->ID;
-					$data['post']['author_slug'] = $user->user_nicename;
+					$data['post']['author_name'] = $user->display_name;
 				}
 			}
 		}
@@ -217,8 +215,7 @@ function get_gtm_data_layer() {
 			$terms = get_the_terms( $post->ID, $taxonomy->name );
 
 			if ( $terms && ! is_wp_error( $terms ) ) {
-				$data['post'][ $taxonomy->name ] = wp_list_pluck( $terms, 'slug' );
-				$data['post'][ $taxonomy->name . '_flattened' ] = implode( ',', wp_list_pluck( $terms, 'slug' ) );
+				$data['post'][ $taxonomy->name ] = implode( ',', wp_list_pluck( $terms, 'name' ) );
 			}
 		}
 	}
@@ -250,6 +247,7 @@ function get_gtm_data_layer() {
 			$data['subtype'] = $term->taxonomy;
 			$data['term']    = [
 				'id' => $term->term_id,
+				'name' => $term->name,
 				'slug' => $term->slug,
 			];
 		}
@@ -259,8 +257,9 @@ function get_gtm_data_layer() {
 
 			$data['subtype'] = 'author';
 			$data['author']  = [
-				'slug' => $user->user_nicename,
+				'id' => $user->ID,
 				'name' => $user->display_name,
+				'slug' => $user->user_nicename,
 			];
 		}
 	}

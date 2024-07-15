@@ -1,6 +1,18 @@
 # Google Tag Manager Tools
 
-Google Tag Manager template tags and settings tool. Also supports Server Side GTM.
+Google Tag Manager template tags and settings tool. Now supports [Server Side GTM](https://developers.google.com/tag-platform/tag-manager/server-side).
+
+## v3 Breaking Changes
+
+There are some breaking changes in v3.0.0:
+
+* data layer no longer passes `post.author_id` by default
+* data layer `post.ID` renamed to `post.id`
+* data layer `term.ID` renamed to `term.id`
+* data layer `author.ID` renamed to `author.id`
+* data layer `user.role` is no longer an array but a comma separated list of roles
+* data layer `post.<taxonomy>` is no longer an array but a comma separated list of term names
+* data layer `post.author_slug` is no longer available by default, use `post.author_name` instead
 
 ## Usage
 
