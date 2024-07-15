@@ -1,14 +1,18 @@
 # Google Tag Manager Tools
 
-Google Tag Manager template tags and settings tool.
+Google Tag Manager template tags and settings tool. Now supports [Server Side GTM](https://developers.google.com/tag-platform/tag-manager/server-side).
 
-## Important: V2 Release breaking changes
+## v3 Breaking Changes
 
-Version 2 brings some breaking changes that may require you to update your implementation and any data layer variables you have set up in Tag Manager. The key differences are:
+There are some breaking changes in v3.0.0:
 
-- The `HM_GTM` namespace has been changed to `HM\GTM`
-- The `HM_GTM\tag()` function has been changed to `gtm_tag()`
-- The default `dataLayer` has been completely overhauled
+* data layer no longer passes `post.author_id` by default
+* data layer `post.ID` renamed to `post.id`
+* data layer `term.ID` renamed to `term.id`
+* data layer `author.ID` renamed to `author.id`
+* data layer `user.role` is no longer an array but a comma separated list of roles
+* data layer `post.<taxonomy>` is no longer an array but a comma separated list of term names
+* data layer `post.author_slug` is no longer available by default, use `post.author_name` instead
 
 ## Usage
 
@@ -17,12 +21,22 @@ Once the plugin is installed and activated there are 2 places you can configure:
 1. On the general settings page in admin add your container ID eg. `GTM-123ABC`
 2. For a multisite install you can set a network wide container ID on the network settings screen
 
+### Server Side GTM
+
+You can optionally specify the following:
+
+1. Server container URL - this should the absolute path to the server container, even if you are using a reverse proxy.
+2. Custom code snippet - this is a block of code that will be added to the `<head>` of the page. Some server side container providers have subtle or extensive changes to the standard GTM snippet so you can override it fully if needed.
+3. Cookie preservation - you can set a special UUID cookie that lasts a long time, some server side providers allow restoring cookies set by 3rd parties or client side code in this way.
+
 ### No script fallback
 
-If you wish to support the fallback iframe for devices without javascript add the following code just after the opening `<body>` tag in your theme:
+**NOTE:** This is not needed for block themes.
+
+If your theme is a classic theme, and you wish to support the fallback iframe for devices without javascript, add the following code just after the opening `<body>` tag in your theme:
 
 ```php
-<?php do_action( 'after_body' ); ?>
+do_action( 'wp_body_open' );
 ```
 
 ## Data Layer

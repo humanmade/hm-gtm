@@ -5,17 +5,30 @@
  * @package hm-gtm
  */
 
+use function HM\GTM\get_uuid_cookie_name;
+
 /**
  * Return the tag manager container JavaScript.
  *
  * @param string $container_id The container's ID eg. GTM-XXXXXXX.
  * @param array $data_layer Array of data to set as the initial dataLayer variable value.
  * @param string $data_layer_var Optional alternative name for the dataLayer variable.
+ * @param string $container_url Optional container URL for server side tag manager.
+ * @param string $snippet Optional custom code snippet. Some server side providers have very different approaches.
  * @return string
  */
-function get_gtm_tag( string $container_id, array $data_layer = [], string $data_layer_var = 'dataLayer' ) : string {
+function get_gtm_tag( string $container_id, array $data_layer = [], string $data_layer_var = 'dataLayer', string $container_url = '', string $snippet = '' ) : string {
 	$tag = '';
 	$data_layer_var = preg_replace( '/[^a-z0-9_]/i', '', $data_layer_var );
+
+	// Add UUID cookie getter.
+	if ( ! empty( get_uuid_cookie_name() ) ) {
+		$tag .= sprintf(
+			'<script>(function(d,f,l){!d.cookie.match("%1$s=")&&f&&f("%2$s?id="+(l&&l.getItem("%1$s"))).then(function(r){return r.json()}).then(function(d){l&&l.setItem("%1$s",d.id)})})(document,window.fetch,window.localStorage)</script>',
+			esc_js( get_uuid_cookie_name() ),
+			esc_js( rest_url( 'service/v1/id' ) )
+		);
+	}
 
 	if ( ! empty( $data_layer ) ) {
 		$tag .= sprintf(
@@ -25,16 +38,23 @@ function get_gtm_tag( string $container_id, array $data_layer = [], string $data
 		);
 	}
 
-	$tag .= sprintf( '
+	$snippet = $snippet ?: '
 		<!-- Google Tag Manager -->
 		<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({\'gtm.start\':
 		new Date().getTime(),event:\'gtm.js\'});var f=d.getElementsByTagName(s)[0],
 		j=d.createElement(s),dl=l!=\'dataLayer\'?\'&l=\'+l:\'\';j.async=true;j.src=
-		\'https://www.googletagmanager.com/gtm.js?id=\'+i+dl;f.parentNode.insertBefore(j,f);
-		})(window,document,\'script\',\'%2$s\',\'%1$s\');</script>
+		\'%2$s/gtm.js?id=\'+i+dl;f.parentNode.insertBefore(j,f);
+		})(window,document,\'script\',\'%3$s\',\'%1$s\');</script>
 		<!-- End Google Tag Manager -->
-		',
+		';
+
+	// Ensure requested data layer var name is used.
+	$snippet = str_replace( '\'script\',\'dataLayer\'', "'script','$data_layer_var'", $snippet );
+
+	$tag .= sprintf(
+		$snippet,
 		esc_attr( $container_id ),
+		esc_js( untrailingslashit( $container_url ?: 'https://www.googletagmanager.com' ) ),
 		$data_layer_var
 	);
 
@@ -55,25 +75,33 @@ function get_gtm_tag( string $container_id, array $data_layer = [], string $data
  * @param string $container_id The container's ID eg. GTM-XXXXXXX.
  * @param array $data_layer Array of data to set as the initial dataLayer variable value.
  * @param string $data_layer_var Optional alternative name for the dataLayer variable.
+ * @param string $container_url Optional container URL for server side tag manager.
+ * @param string $snippet Optional custom code snippet.
  */
-function gtm_tag( string $container_id, array $data_layer = [], string $data_layer_var = 'dataLayer' ) {
-	echo get_gtm_tag( $container_id, $data_layer, $data_layer_var );
+function gtm_tag( string $container_id, array $data_layer = [], string $data_layer_var = 'dataLayer', string $container_url = '', string $snippet = '' ) {
+	echo get_gtm_tag( ...func_get_args() );
 }
 
 /**
  * Return the tag manager container iframe.
  *
  * @param string $container_id The container's ID eg. GTM-XXXXXXX.
+ * @param string $container_url Optional container URL for server side tag manager.
+ * @param string $snippet Optional custom code snippet to use.
  * @return string
  */
-function get_gtm_tag_iframe( string $container_id ) : string {
-	return sprintf( '
+function get_gtm_tag_iframe( string $container_id, string $container_url = '', string $snippet = '' ) : string {
+	$snippet = $snippet ?: '
 		<!-- Google Tag Manager (noscript) -->
-		<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=%1$s"
+		<noscript><iframe src="%2$s/ns.html?id=%1$s"
 		height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 		<!-- End Google Tag Manager (noscript) -->
-		',
-		esc_attr( $container_id )
+		';
+
+	return sprintf(
+		$snippet,
+		esc_attr( $container_id ),
+		esc_attr( untrailingslashit( $container_url ?: 'https://www.googletagmanager.com' ) ),
 	);
 }
 
@@ -81,9 +109,11 @@ function get_gtm_tag_iframe( string $container_id ) : string {
  * Output the tag manager container JavaScript.
  *
  * @param string $container_id The container's ID eg. GTM-XXXXXXX.
+ * @param string $container_url Optional container URL for server side tag manager.
+ * @param string $snippet Optional custom code snippet to use.
  */
-function gtm_tag_iframe( string $container_id ) {
-	echo get_gtm_tag_iframe( $container_id );
+function gtm_tag_iframe( string $container_id, string $container_url = '', string $snippet = '' ) {
+	echo get_gtm_tag_iframe( ...func_get_args() );
 }
 
 /**
@@ -109,7 +139,7 @@ function get_gtm_data_layer() {
 			'is_tax' => is_tax(),
 		],
 		'user' => [
-			'role' => [],
+			'logged_in' => false,
 		],
 		'blog' => [
 			'url' => home_url(),
@@ -132,7 +162,9 @@ function get_gtm_data_layer() {
 	 */
 	if ( is_user_logged_in() ) {
 		$user = wp_get_current_user();
-		$data['user']['role'] = array_keys( $user->caps );
+		$data['user']['logged_in'] = true;
+		$data['user']['id'] = get_current_user_id();
+		$data['user']['role'] = implode( ',', array_keys( $user->caps ) );
 	}
 
 	/**
@@ -144,23 +176,36 @@ function get_gtm_data_layer() {
 		$data['type'] = 'post';
 		$data['subtype'] = $post->post_type;
 		$data['post'] = [
-			'ID' => $post->ID,
+			'id' => $post->ID,
+			'title' => $post->post_title,
 			'slug' => $post->post_name,
 			'published' => $post->post_date_gmt,
 			'modified' => $post->post_modified_gmt,
-			'comments' => get_comment_count( $post->ID )['approved'],
 			'template' => get_page_template_slug( $post->ID ),
 			'thumbnail' => get_the_post_thumbnail_url( $post->ID, 'full' ),
 		];
 
-		if ( post_type_supports( $post->post_type, 'author' ) ) {
-			$user = get_user_by( 'id', $post->post_author );
+		if ( comments_open( $post ) ) {
+			$data['post']['comments'] = wp_count_comments( $post->ID )->approved ?? 0;
+		}
 
-			if ( is_a( $user, 'WP_User' ) ) {
-				$data['post']['author_ID'] = $user->ID;
-				$data['post']['author_slug'] = $user->user_nicename;
+		if ( post_type_supports( $post->post_type, 'author' ) ) {
+			// Support Authorship plugin out of the box.
+			if ( function_exists( '\\Authorship\\get_authors' ) ) {
+				$authors = \Authorship\get_authors( $post );
+				if ( ! empty( $authors ) ) {
+					$data['post']['author_name'] = $authors[0]->display_name;
+					$data['post']['author_names'] = implode( ',', wp_list_pluck( $authors, 'display_name' ) );
+				}
+			} else {
+				$user = get_user_by( 'id', $post->post_author );
+
+				if ( is_a( $user, 'WP_User' ) ) {
+					$data['post']['author_name'] = $user->display_name;
+				}
 			}
 		}
+
 
 		foreach ( get_object_taxonomies( $post->post_type, 'objects' ) as $taxonomy ) {
 			if ( ! $taxonomy->public ) {
@@ -170,7 +215,7 @@ function get_gtm_data_layer() {
 			$terms = get_the_terms( $post->ID, $taxonomy->name );
 
 			if ( $terms && ! is_wp_error( $terms ) ) {
-				$data['post'][ $taxonomy->name ] = wp_list_pluck( $terms, 'slug' );
+				$data['post'][ $taxonomy->name ] = implode( ',', wp_list_pluck( $terms, 'name' ) );
 			}
 		}
 	}
@@ -201,7 +246,8 @@ function get_gtm_data_layer() {
 			$data['type'] = 'term';
 			$data['subtype'] = $term->taxonomy;
 			$data['term']    = [
-				'ID' => $term->term_id,
+				'id' => $term->term_id,
+				'name' => $term->name,
 				'slug' => $term->slug,
 			];
 		}
@@ -211,8 +257,9 @@ function get_gtm_data_layer() {
 
 			$data['subtype'] = 'author';
 			$data['author']  = [
-				'slug' => $user->user_nicename,
+				'id' => $user->ID,
 				'name' => $user->display_name,
+				'slug' => $user->user_nicename,
 			];
 		}
 	}
@@ -241,12 +288,12 @@ function get_gtm_data_layer() {
  *                   any value that can be passed to addEventListener.
  * @param string $category Optional event category.
  * @param string $label Optional event label.
- * @param numeric $value Optional numeric event value.
+ * @param float $value Optional numeric event value.
  * @param array $fields Optional array of custom data.
- * @param strin $var Optionally override the dataLayer variable name for this event.
+ * @param string $var Optionally override the dataLayer variable name for this event.
  * @return string
  */
-function get_gtm_data_attributes( string $event, string $on = 'click', string $category = '', string $label = '', ?numeric $value = null, array $fields = [], string $var = '' ) : string {
+function get_gtm_data_attributes( string $event, string $on = 'click', string $category = '', string $label = '', ?float $value = null, array $fields = [], string $var = '' ) : string {
 	$attrs = [
 		'data-gtm-on' => $on,
 		'data-gtm-event' => $event,
