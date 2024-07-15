@@ -139,7 +139,7 @@ function get_gtm_data_layer() {
 			'is_tax' => is_tax(),
 		],
 		'user' => [
-			'role' => [],
+			'logged_in' => false,
 		],
 		'blog' => [
 			'url' => home_url(),
@@ -162,6 +162,8 @@ function get_gtm_data_layer() {
 	 */
 	if ( is_user_logged_in() ) {
 		$user = wp_get_current_user();
+		$data['user']['logged_in'] = true;
+		$data['user']['id'] = get_current_user_id();
 		$data['user']['role'] = array_keys( $user->caps );
 	}
 
@@ -174,23 +176,34 @@ function get_gtm_data_layer() {
 		$data['type'] = 'post';
 		$data['subtype'] = $post->post_type;
 		$data['post'] = [
-			'ID' => $post->ID,
+			'id' => $post->ID,
 			'slug' => $post->post_name,
 			'published' => $post->post_date_gmt,
 			'modified' => $post->post_modified_gmt,
-			'comments' => get_comment_count( $post->ID )['approved'],
 			'template' => get_page_template_slug( $post->ID ),
 			'thumbnail' => get_the_post_thumbnail_url( $post->ID, 'full' ),
 		];
 
 		if ( post_type_supports( $post->post_type, 'author' ) ) {
-			$user = get_user_by( 'id', $post->post_author );
+			// Support Authorship plugin out of the box.
+			if ( function_exists( '\\Authorship\\get_authors' ) ) {
+				$authors = \Authorship\get_authors( $post );
+				if ( ! empty( $authors ) ) {
+					$data['post']['author_id'] = $authors[0]->ID;
+					$data['post']['author_slug'] = $authors[0]->user_nicename;
+					$data['post']['author_ids'] = implode( ',', wp_list_pluck( $authors, 'ID' ) );
+					$data['post']['author_slugs'] = implode( ',', wp_list_pluck( $authors, 'user_nicename' ) );
+				}
+			} else {
+				$user = get_user_by( 'id', $post->post_author );
 
-			if ( is_a( $user, 'WP_User' ) ) {
-				$data['post']['author_ID'] = $user->ID;
-				$data['post']['author_slug'] = $user->user_nicename;
+				if ( is_a( $user, 'WP_User' ) ) {
+					$data['post']['author_id'] = $user->ID;
+					$data['post']['author_slug'] = $user->user_nicename;
+				}
 			}
 		}
+
 
 		foreach ( get_object_taxonomies( $post->post_type, 'objects' ) as $taxonomy ) {
 			if ( ! $taxonomy->public ) {
@@ -201,6 +214,7 @@ function get_gtm_data_layer() {
 
 			if ( $terms && ! is_wp_error( $terms ) ) {
 				$data['post'][ $taxonomy->name ] = wp_list_pluck( $terms, 'slug' );
+				$data['post'][ $taxonomy->name . '_flattened' ] = implode( ',', wp_list_pluck( $terms, 'slug' ) );
 			}
 		}
 	}
@@ -231,7 +245,7 @@ function get_gtm_data_layer() {
 			$data['type'] = 'term';
 			$data['subtype'] = $term->taxonomy;
 			$data['term']    = [
-				'ID' => $term->term_id,
+				'id' => $term->term_id,
 				'slug' => $term->slug,
 			];
 		}
@@ -271,12 +285,12 @@ function get_gtm_data_layer() {
  *                   any value that can be passed to addEventListener.
  * @param string $category Optional event category.
  * @param string $label Optional event label.
- * @param numeric $value Optional numeric event value.
+ * @param float $value Optional numeric event value.
  * @param array $fields Optional array of custom data.
- * @param strin $var Optionally override the dataLayer variable name for this event.
+ * @param string $var Optionally override the dataLayer variable name for this event.
  * @return string
  */
-function get_gtm_data_attributes( string $event, string $on = 'click', string $category = '', string $label = '', ?numeric $value = null, array $fields = [], string $var = '' ) : string {
+function get_gtm_data_attributes( string $event, string $on = 'click', string $category = '', string $label = '', ?float $value = null, array $fields = [], string $var = '' ) : string {
 	$attrs = [
 		'data-gtm-on' => $on,
 		'data-gtm-event' => $event,

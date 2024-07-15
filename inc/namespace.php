@@ -193,9 +193,9 @@ function add_site_settings() {
 		'general',
 		'hm_gtm',
 		[
-			'value'       => get_option( 'hm_gtm_cookie', get_uuid_cookie_name() ),
+			'value'       => get_uuid_cookie_name(),
 			'name'        => 'hm_gtm_cookie',
-			'description' => esc_html__( 'Some server side Tag Manager providers support restoring expired cookies from a master cookie value. Use the default cookie name defined here or configure it to match your provider\'s expected name.', 'hm_gtm' ),
+			'description' => esc_html__( 'Some server side Tag Manager providers support restoring expired cookies from a master cookie value, you can set the name of the cookie here.', 'hm_gtm' ),
 		]
 	);
 
@@ -204,9 +204,9 @@ function add_site_settings() {
 		'hm_gtm_cookie',
 		[
 			'type' => 'string',
-			'description' => esc_html__( 'Google Tag Manager Container URL', 'hm_gtm' ),
+			'description' => esc_html__( 'Google Tag Manager cookie restoration / master cookie name', 'hm_gtm' ),
 			'sanitize_callback' => 'sanitize_key',
-			'default' => get_uuid_cookie_name(),
+			'default' => '',
 		]
 	);
 
@@ -438,7 +438,7 @@ function checkbox_settings_field( array $args ) {
  * @return string
  */
 function get_uuid_cookie_name() : string {
-	return (string) get_option( 'hm_gtm_cookie', 'serviceid_' . COOKIEHASH );
+	return (string) get_option( 'hm_gtm_cookie', '' );
 }
 
 /**
@@ -452,6 +452,12 @@ function uuid_cookie_endpoint() : void {
 			'methods' => 'GET',
 			'callback' => function ( WP_REST_Request $request ) {
 				$cookie_name = get_uuid_cookie_name();
+
+				// Short-circuit early if we're not using this feature.
+				if ( empty( $cookie_name ) ) {
+					return rest_ensure_response( null );
+				}
+
 				$cookie_value = $_COOKIE[ $cookie_name ] ?? '';
 
 				// Generate or get param from localStorage if defined.
@@ -493,7 +499,10 @@ function uuid_cookie_endpoint() : void {
  * Enqueue data attribute tracking script.
  */
 function enqueue_scripts() {
-	wp_enqueue_script( 'hm-gtm', plugins_url( '/assets/events.js', dirname( __FILE__ ) ), [], VERSION, true );
+	wp_enqueue_script( 'hm-gtm', plugins_url( '/assets/events.js', dirname( __FILE__ ) ), [], VERSION, [
+		'in_footer' => false,
+		'strategy' => 'defer',
+	] );
 }
 
 /**
