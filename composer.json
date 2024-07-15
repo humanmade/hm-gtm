@@ -9,5 +9,12 @@
             "email": "rob@humanmade.com"
         }
     ],
-    "require": {}
+    "require": {
+        "composer/installers": "^1.0 || ^2.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "composer/installers": true
+        }
+    }
 }
