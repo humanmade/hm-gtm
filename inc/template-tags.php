@@ -184,6 +184,10 @@ function get_gtm_data_layer() {
 			'thumbnail' => get_the_post_thumbnail_url( $post->ID, 'full' ),
 		];
 
+		if ( comments_open( $post ) ) {
+			$data['post']['comments'] = wp_count_comments( $post->ID )->approved ?? 0;
+		}
+
 		if ( post_type_supports( $post->post_type, 'author' ) ) {
 			// Support Authorship plugin out of the box.
 			if ( function_exists( '\\Authorship\\get_authors' ) ) {
