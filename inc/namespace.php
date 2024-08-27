@@ -8,6 +8,7 @@
 namespace HM\GTM;
 
 use WP_Admin_Bar;
+use WP_HTML_Tag_Processor;
 use WP_REST_Request;
 
 /**
@@ -25,6 +26,10 @@ function bootstrap() {
 	add_action( 'admin_init', __NAMESPACE__ . '\\add_site_settings' );
 	add_action( 'wpmu_options', __NAMESPACE__ . '\\add_network_settings' );
 	add_action( 'update_wpmu_options', __NAMESPACE__ . '\\save_network_settings' );
+
+	// Block features.
+	add_action( 'enqueue_block_editor_assets', __NAMESPACE__ . '\\block_editor_enqueue_scripts' );
+	add_filter( 'render_block', __NAMESPACE__ . '\\filter_render_block', 10, 3 );
 
 	// UUID cookie service.
 	add_action( 'rest_api_init', __NAMESPACE__ . '\\uuid_cookie_endpoint' );
@@ -508,6 +513,76 @@ function enqueue_scripts() {
 		'in_footer' => false,
 		'strategy' => 'defer',
 	] );
+}
+
+/**
+ * Enqueue block editor settings panel.
+ */
+function block_editor_enqueue_scripts() {
+	wp_enqueue_script( 'hm-gtm-blocks', plugins_url( '/assets/blocks.js', dirname( __FILE__ ) ), [
+		'wp-block-editor',
+		'wp-hooks',
+		'wp-components',
+	], VERSION, [
+		'in_footer' => false,
+		'strategy' => 'defer',
+	] );
+}
+
+/**
+ * Filters the content of a single block.
+ *
+ * @param string    $block_content The block content.
+ * @param array     $block         The full block, including name and attributes.
+ * @param \WP_Block $instance      The block instance.
+ * @return string The block content.
+ */
+function filter_render_block( string $block_content, array $block, \WP_Block $instance ) : string {
+
+	// Check minimum requirements.
+	if ( empty( $block['attrs']['gtm'] ) || empty( $block['attrs']['gtm']['event'] ) ) {
+		return $block_content;
+	}
+
+	$attributes = [];
+	$attributes['data-gtm-on'] = $block['attrs']['gtm']['trigger'] ?? 'click';
+
+	foreach ( [ 'event', 'action', 'category', 'label', 'value' ] as $key ) {
+		if ( ! empty( $block['attrs']['gtm'][ $key ] ) ) {
+			$attributes["data-gtm-{$key}"] = $block['attrs']['gtm'][ $key ];
+		}
+	}
+
+	$block = new WP_HTML_Tag_Processor( $block_content );
+	$block->set_bookmark( 'root' );
+
+	$query = null;
+
+	switch ( $attributes['data-gtm-on'] ) {
+		case 'click':
+			$query = [ 'tag_name' => 'a' ];
+			if ( ! $block->next_tag( [ 'tag_name' => $query ] ) ) {
+				$query['tag_name'] = 'button';
+				$block->seek( 'root' );
+			}
+			if ( ! $block->next_tag( [ 'tag_name' => $query ] ) ) {
+				$query = null;
+			}
+			$block->seek( 'root' );
+			$block->next_tag( $query );
+			break;
+		case 'submit':
+			$block->next_tag( [ 'tag_name' => 'form' ] );
+			break;
+		default:
+			$block->next_tag();
+	}
+
+	foreach ( $attributes as $name => $value ) {
+		$block->set_attribute( $name, $value );
+	}
+
+	return (string) $block;
 }
 
 /**
