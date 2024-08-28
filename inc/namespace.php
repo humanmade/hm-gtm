@@ -356,6 +356,8 @@ function add_network_settings() {
 					] );
 				?>
 			</td>
+		</tr>
+		<tr valign="top">
 			<th scope="row">
 				<label for="hm_gtm_network_url"><?php esc_html_e( 'Container URL', 'hm_gtm' ); ?></label>
 			</th>
@@ -368,6 +370,8 @@ function add_network_settings() {
 					] );
 				?>
 			</td>
+		</tr>
+		<tr valign="top">
 			<th scope="row">
 				<label for="hm_gtm_network_snippet"><?php esc_html_e( 'Custom Container Snippet', 'hm_gtm' ); ?></label>
 			</th>
@@ -380,6 +384,8 @@ function add_network_settings() {
 					] );
 				?>
 			</td>
+		</tr>
+		<tr valign="top">
 			<th scope="row">
 				<label for="hm_gtm_network_snippet_iframe"><?php esc_html_e( 'Custom Container Iframe Snippet', 'hm_gtm' ); ?></label>
 			</th>
