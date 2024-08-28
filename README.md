@@ -62,11 +62,23 @@ You can explore and view the `dataLayer` variables by previewing your container 
 
 ### Custom event tracking
 
+In the block editor you can add event tracking to any block via the settings panel in the block sidebar. This calls `dataLayer.push()` with the event data specified.
+
+All blocks are opted in to support this by default, but you can set block support to false with the following during block registration, or via `block.json`. For example:
+
+```php
+register_block_type( 'my-plugin/my-block', [
+  'supports' => [
+    'gtm' => false,
+  ],
+) );
+```
+
 By default the plugin will look for elements with special data attributes in your markup and listen to the specified event to push events to the data layer.
 
 The data attributes are:
 
-- `data-gtm-on`: _enum_ [click|submit|keyup|focus|blur] The JS event to listen for, defaults to 'click'.
+- `data-gtm-on`: _enum_ [click|submit|keyup|focusin|focusout|mouseenter|mouseleave] The JS event to listen for, defaults to 'click'.
 - `data-gtm-event`: _string_ The name or action of the event eg. "play".
 - `data-gtm-category`: _string_ Optional group the event belongs to.
 - `data-gtm-label`: _string_ Optional human readable label for the event.

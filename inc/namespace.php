@@ -8,6 +8,9 @@
 namespace HM\GTM;
 
 use WP_Admin_Bar;
+use WP_Block_Supports;
+use WP_Block_Type;
+use WP_HTML_Tag_Processor;
 use WP_REST_Request;
 
 /**
@@ -39,6 +42,49 @@ function bootstrap() {
 
 	if ( $enable_event_tracking ) {
 		add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\\enqueue_scripts' );
+
+		// Block UI.
+		add_action( 'enqueue_block_editor_assets', __NAMESPACE__ . '\\block_editor_enqueue_scripts' );
+		add_filter( 'render_block', __NAMESPACE__ . '\\filter_render_block', 10, 3 );
+		WP_Block_Supports::get_instance()->register(
+			'gtm',
+			[
+				'register_attribute' => function ( WP_Block_Type $block_type ) {
+					if ( ! block_has_support( $block_type, 'gtm', true ) ) {
+						return [];
+					}
+
+					if ( ! $block_type->attributes ) {
+						$block_type->attributes = [];
+					}
+
+					$block_type->attributes['gtm'] = [
+						'type' => 'object',
+						'properties' => [
+							'trigger' => [
+								'type' => 'string',
+								'enum' => [ 'click', 'submit', 'focusin', 'focusout', 'mouseenter', 'mouseleave' ],
+							],
+							'event' => [
+								'type' => 'string',
+							],
+							'action' => [
+								'type' => 'string',
+							],
+							'category' => [
+								'type' => 'string',
+							],
+							'label' => [
+								'type' => 'string',
+							],
+							'value' => [
+								'type' => 'string',
+							],
+						],
+					];
+				},
+			]
+		);
 	}
 
 	// dataLayer display.
@@ -508,6 +554,81 @@ function enqueue_scripts() {
 		'in_footer' => false,
 		'strategy' => 'defer',
 	] );
+}
+
+/**
+ * Enqueue block editor settings panel.
+ */
+function block_editor_enqueue_scripts() {
+	wp_enqueue_script( 'hm-gtm-blocks', plugins_url( '/assets/blocks.js', dirname( __FILE__ ) ), [
+		'wp-blocks',
+		'wp-block-editor',
+		'wp-hooks',
+		'wp-components',
+	], VERSION, [
+		'in_footer' => false,
+		'strategy' => 'defer',
+	] );
+}
+
+/**
+ * Filters the content of a single block.
+ *
+ * @param string $block_content The block content.
+ * @param array  $block         The full block, including name and attributes.
+ * @return string The block content.
+ */
+function filter_render_block( string $block_content, array $block ) : string {
+
+	// Check minimum requirements.
+	if ( empty( $block['attrs']['gtm'] ) || empty( $block['attrs']['gtm']['event'] ) ) {
+		return $block_content;
+	}
+
+	$attributes = [];
+	$attributes['data-gtm-on'] = $block['attrs']['gtm']['trigger'] ?? 'click';
+
+	foreach ( [ 'event', 'action', 'category', 'label', 'value' ] as $key ) {
+		if ( ! empty( $block['attrs']['gtm'][ $key ] ) ) {
+			$attributes["data-gtm-{$key}"] = $block['attrs']['gtm'][ $key ];
+		}
+	}
+
+	$block = new WP_HTML_Tag_Processor( $block_content );
+	$block->set_bookmark( 'root' );
+
+	$query = null;
+
+	switch ( $attributes['data-gtm-on'] ) {
+		case 'click':
+			$query = [ 'tag_name' => 'a' ];
+			// Test for an anchor tag.
+			if ( ! $block->next_tag( [ 'tag_name' => $query ] ) ) {
+				// Update to test for a button.
+				$query['tag_name'] = 'button';
+				$block->seek( 'root' );
+			}
+			// Test for a button tag.
+			if ( ! $block->next_tag( [ 'tag_name' => $query ] ) ) {
+				// Reset to first/wrapper tag.
+				$query = null;
+			}
+			$block->seek( 'root' );
+			$block->next_tag( $query );
+			break;
+		case 'submit':
+			// Must be a form tag.
+			$block->next_tag( [ 'tag_name' => 'form' ] );
+			break;
+		default:
+			$block->next_tag();
+	}
+
+	foreach ( $attributes as $name => $value ) {
+		$block->set_attribute( $name, $value );
+	}
+
+	return (string) $block;
 }
 
 /**
