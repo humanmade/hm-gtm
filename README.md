@@ -36,7 +36,7 @@ You can optionally specify the following:
 If your theme is a classic theme, and you wish to support the fallback iframe for devices without javascript, add the following code just after the opening `<body>` tag in your theme:
 
 ```php
-do_action( 'wp_body_open' );
+<?php wp_body_open(); ?>
 ```
 
 ## Data Layer
