@@ -1,5 +1,6 @@
 const addFilter = wp.hooks.addFilter;
 const InspectorControls = wp.blockEditor.InspectorControls;
+const hasBlockSupport = wp.blocks.hasBlockSupport;
 const TextControl = wp.components.TextControl;
 const SelectControl = wp.components.SelectControl;
 const PanelBody = wp.components.PanelBody;
@@ -50,6 +51,7 @@ function HMGTMEvents(BlockEdit) {
 									{ label: __( 'Submit', 'hm-gtm' ), value: 'submit' },
 									{ label: __( 'Focus', 'hm-gtm' ), value: 'focusin' },
 									{ label: __( 'Blur', 'hm-gtm' ), value: 'focusout' },
+									{ label: __( 'Key up', 'hm-gtm' ), value: 'keyup' },
 									{ label: __( 'Mouseover', 'hm-gtm' ), value: 'mouseenter' },
 									{ label: __( 'Mouseout', 'hm-gtm' ), value: 'mouseleave' }
 								],
@@ -118,20 +120,17 @@ function HMGTMEvents(BlockEdit) {
 addFilter(
 	'editor.BlockEdit',
 	'hm-gtm/events',
-	HMGTMEvents
+	HMGTMEvents,
+	5000
 );
 
 function addGTMAttribute(settings) {
-	if ( settings.supports?.gtm === false ) {
+	if ( ! hasBlockSupport( settings.name, 'gtm', true ) ) {
 		return settings;
 	}
 
 	return {
 		...settings,
-		supports: {
-			...( settings.supports || {} ),
-			gtm: true,
-		},
 		attributes: {
 			...settings.attributes,
 			gtm: {
@@ -140,7 +139,7 @@ function addGTMAttribute(settings) {
 				properties: {
 					trigger: {
 						type: 'string',
-						enum: [ 'click', 'submit', 'focusin', 'focusout', 'mouseenter', 'mouseleave' ]
+						enum: [ 'click', 'submit', 'focusin', 'focusout', 'keyup', 'mouseenter', 'mouseleave' ]
 					},
 					event: {
 						type: 'string'
@@ -166,5 +165,6 @@ function addGTMAttribute(settings) {
 wp.hooks.addFilter(
 	'blocks.registerBlockType',
 	'hm-gtm/add-gtm-attribute',
-	addGTMAttribute
+	addGTMAttribute,
+	5000
 );
