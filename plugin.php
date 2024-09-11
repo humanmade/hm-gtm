@@ -9,7 +9,7 @@
 
 namespace HM\GTM;
 
-const VERSION = '3.1.1';
+const VERSION = '3.1.2';
 
 require_once __DIR__ . '/inc/namespace.php';
 require_once __DIR__ . '/inc/template-tags.php';
