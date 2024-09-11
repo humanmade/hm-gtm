@@ -667,9 +667,6 @@ function admin_bar_data_layer_ui( WP_Admin_Bar $admin_bar ) {
 		'title' => '
 			<span class="ab-icon dashicons-filter"></span>
 			<span class="ab-label">' . __( 'GTM Data Layer', 'hm-gtm' ) . '</span>',
-		'meta' => [
-			'html' => 'html here',
-		],
 	] );
 
 	foreach ( $data_layer as $key => $value ) {
