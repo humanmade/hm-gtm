@@ -536,7 +536,7 @@ function uuid_cookie_endpoint() : void {
 				setcookie( $cookie_name, $cookie_value, [
 					'expires' => time() + ( YEAR_IN_SECONDS * 2 ),
 					'path'     => '/',
-					'domain'   => '.' . wp_parse_url( home_url(), PHP_URL_HOST ),
+					'domain'   => '.' . str_replace( 'www.', '', wp_parse_url( home_url(), PHP_URL_HOST ) ),
 					'secure'   => true,
 					'httponly' => false,
 					'samesite' => 'lax',
