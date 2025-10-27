@@ -600,7 +600,8 @@ function filter_render_block( string $block_content, array $block ) : string {
 		}
 	}
 
-	$block = new WP_HTML_Tag_Processor( $block_content );
+	$block = new WP_HTML_Tag_Processor( trim( $block_content ) );
+	$block->next_tag();
 	$block->set_bookmark( 'root' );
 
 	$query = null;
