@@ -407,6 +407,7 @@ function add_network_settings() {
  * Save Network Settings for Google Tag Manager.
  */
 function save_network_settings() {
+	// phpcs:disable HM.Security.NonceVerification.Missing -- Hooked to update_wpmu_options, which WP core only fires from wp-admin/network/settings.php after check_admin_referer( 'siteoptions' ) has already passed.
 	if ( isset( $_POST['hm_gtm_network_id'] ) ) {
 		update_site_option( 'hm_gtm_network_id', sanitize_text_field( wp_unslash( $_POST['hm_gtm_network_id'] ) ) );
 	}
@@ -419,6 +420,7 @@ function save_network_settings() {
 	if ( isset( $_POST['hm_gtm_network_snippet_iframe'] ) ) {
 		update_site_option( 'hm_gtm_network_snippet_iframe', sanitize_textarea_field( wp_unslash( $_POST['hm_gtm_network_snippet_iframe'] ) ) );
 	}
+	// phpcs:enable HM.Security.NonceVerification.Missing
 }
 
 /**
@@ -515,7 +517,7 @@ function uuid_cookie_endpoint() : void {
 					return rest_ensure_response( null );
 				}
 
-				$cookie_value = $_COOKIE[ $cookie_name ] ?? '';
+				$cookie_value = isset( $_COOKIE[ $cookie_name ] ) ? sanitize_text_field( wp_unslash( $_COOKIE[ $cookie_name ] ) ) : '';
 
 				// Generate or get param from localStorage if defined.
 				if ( ! wp_is_uuid( $cookie_value ) ) {
