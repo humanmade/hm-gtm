@@ -79,6 +79,7 @@ function get_gtm_tag( string $container_id, array $data_layer = [], string $data
  * @param string $snippet Optional custom code snippet.
  */
 function gtm_tag( string $container_id, array $data_layer = [], string $data_layer_var = 'dataLayer', string $container_url = '', string $snippet = '' ) {
+	// phpcs:ignore HM.Security.EscapeOutput.OutputNotEscaped -- get_gtm_tag() escapes every dynamic value (esc_js/esc_attr/wp_json_encode) before interpolating into the static script markup.
 	echo get_gtm_tag( ...func_get_args() );
 }
 
@@ -113,6 +114,7 @@ function get_gtm_tag_iframe( string $container_id, string $container_url = '', s
  * @param string $snippet Optional custom code snippet to use.
  */
 function gtm_tag_iframe( string $container_id, string $container_url = '', string $snippet = '' ) {
+	// phpcs:ignore HM.Security.EscapeOutput.OutputNotEscaped -- get_gtm_tag_iframe() escapes every dynamic value (esc_attr) before interpolating into the static iframe markup.
 	echo get_gtm_tag_iframe( ...func_get_args() );
 }
 
