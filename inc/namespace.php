@@ -555,10 +555,28 @@ function uuid_cookie_endpoint() : void {
 }
 
 /**
+ * Get the version used to cache-bust an asset.
+ *
+ * Falls back to the file modified time when the plugin version is the unstamped placeholder.
+ *
+ * @param string $path Asset path relative to the plugin root, e.g. '/assets/events.js'.
+ * @return string The version string.
+ */
+function get_asset_version( string $path ) : string {
+	if ( VERSION !== '__VERSION__' ) {
+		return VERSION;
+	}
+
+	$mtime = filemtime( dirname( __DIR__ ) . $path );
+
+	return $mtime ? (string) $mtime : VERSION;
+}
+
+/**
  * Enqueue data attribute tracking script.
  */
 function enqueue_scripts() {
-	wp_enqueue_script( 'hm-gtm', plugins_url( '/assets/events.js', dirname( __FILE__ ) ), [], VERSION, [
+	wp_enqueue_script( 'hm-gtm', plugins_url( '/assets/events.js', dirname( __FILE__ ) ), [], get_asset_version( '/assets/events.js' ), [
 		'in_footer' => false,
 		'strategy' => 'defer',
 	] );
@@ -573,7 +591,7 @@ function block_editor_enqueue_scripts() {
 		'wp-block-editor',
 		'wp-hooks',
 		'wp-components',
-	], VERSION, [
+	], get_asset_version( '/assets/blocks.js' ), [
 		'in_footer' => false,
 		'strategy' => 'defer',
 	] );
