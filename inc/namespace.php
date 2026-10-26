@@ -352,7 +352,7 @@ function add_network_settings() {
 					text_settings_field( [
 						'name'       => 'hm_gtm_network_id',
 						'value'      => get_site_option( 'hm_gtm_network_id' ),
-						'decription' => esc_html__( 'Enter your network container ID eg. GTM-123ABC', 'hm_gtm' ),
+						'description' => esc_html__( 'Enter your network container ID eg. GTM-123ABC', 'hm_gtm' ),
 					] );
 				?>
 			</td>
@@ -366,7 +366,7 @@ function add_network_settings() {
 					text_settings_field( [
 						'name'       => 'hm_gtm_network_url',
 						'value'      => get_site_option( 'hm_gtm_network_url' ),
-						'decription' => esc_html__( 'If using server side Tag Manager, enter your network container URL', 'hm_gtm' ),
+						'description' => esc_html__( 'If using server side Tag Manager, enter your network container URL', 'hm_gtm' ),
 					] );
 				?>
 			</td>
@@ -380,7 +380,7 @@ function add_network_settings() {
 					textarea_settings_field( [
 						'name'       => 'hm_gtm_network_snippet',
 						'value'      => get_site_option( 'hm_gtm_network_snippet' ),
-						'decription' => esc_html__( 'If using server side Tag Manager, you may be given a customised code snippet. Enter it here.', 'hm_gtm' ),
+						'description' => esc_html__( 'If using server side Tag Manager, you may be given a customised code snippet. Enter it here.', 'hm_gtm' ),
 					] );
 				?>
 			</td>
@@ -394,7 +394,7 @@ function add_network_settings() {
 					textarea_settings_field( [
 						'name'       => 'hm_gtm_network_snippet_iframe',
 						'value'      => get_site_option( 'hm_gtm_network_snippet_iframe' ),
-						'decription' => esc_html__( 'If your server side container provider gives you a custom iframe snippet, enter it here.', 'hm_gtm' ),
+						'description' => esc_html__( 'If your server side container provider gives you a custom iframe snippet, enter it here.', 'hm_gtm' ),
 					] );
 				?>
 			</td>
