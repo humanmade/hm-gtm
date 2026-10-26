@@ -1,0 +1,104 @@
+name: Release
+
+# Stamps the version into the plugin source, then creates an immutable tag
+# that already points at the versioned code.
+#
+# The tag is created exactly once and is never moved or force-pushed, so
+# Packagist (which requires tags to be immutable) accepts it without conflict.
+#
+# Trigger this manually from the Actions tab and supply the version to cut.
+
+on:
+    workflow_dispatch:
+        inputs:
+            version:
+                description: 'Version to release (e.g. 1.2.3)'
+                required: true
+                type: string
+
+concurrency:
+    group: release-${{ github.event.inputs.version }}
+    cancel-in-progress: false
+
+jobs:
+    release:
+        name: Stamp, tag and publish
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            - name: Validate version input
+              run: |
+                  VERSION="${{ github.event.inputs.version }}"
+                  if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+                      echo "::error::Version must be in X.Y.Z format. Got: '$VERSION'"
+                      exit 1
+                  fi
+                  echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+                  echo "TAG=$VERSION" >> "$GITHUB_ENV"
+
+            - name: Check out source
+              uses: actions/checkout@v5
+              with:
+                  ref: master
+                  fetch-depth: 0
+
+            - name: Ensure the tag does not already exist
+              run: |
+                  if git ls-remote --tags origin | grep -q "refs/tags/${TAG}$"; then
+                      echo "::error::Tag ${TAG} already exists. Tags are immutable — bump the version and try again."
+                      exit 1
+                  fi
+
+            - name: Ensure the version placeholder is present
+              run: |
+                  if ! grep -q "__VERSION__" plugin.php; then
+                      echo "::error::plugin.php does not contain the __VERSION__ placeholder."
+                      exit 1
+                  fi
+
+            - name: Stamp version into the plugin
+              run: |
+                  sed -i "s/__VERSION__/${VERSION}/g" plugin.php
+                  echo "Stamped plugin header / constant:"
+                  grep -n "Version:\|const VERSION" plugin.php
+                  if grep -q "__VERSION__" plugin.php; then
+                      echo "::error::__VERSION__ is still present in plugin.php after stamping."
+                      exit 1
+                  fi
+
+            - name: Create the immutable release commit and tag
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+
+                  git add plugin.php
+                  git commit -m "Release ${TAG}"
+
+                  git tag -a "${TAG}" -m "Release ${TAG}"
+
+                  # Push ONLY the tag (and the objects it reaches). It is created
+                  # once and never force-pushed, satisfying Packagist's immutability.
+                  git push origin "refs/tags/${TAG}"
+
+            - name: Build distribution ZIP
+              run: |
+                  mkdir -p dist
+                  # git archive honours the export-ignore rules in .gitattributes,
+                  # so the ZIP contents are defined in exactly one place and are
+                  # guaranteed to match the tagged tree.
+                  git archive --format=zip \
+                      --prefix=hm-gtm/ \
+                      -o "dist/hm-gtm-${TAG}.zip" \
+                      "${TAG}"
+                  echo "Created dist/hm-gtm-${TAG}.zip"
+
+            - name: Publish GitHub release
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: ${{ env.TAG }}
+                  name: ${{ env.TAG }}
+                  generate_release_notes: true
+                  files: dist/hm-gtm-${{ env.TAG }}.zip
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

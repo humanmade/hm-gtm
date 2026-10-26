@@ -1,0 +1,11 @@
+# Git attributes for release automation
+#
+# Anything marked `export-ignore` is stripped from `git archive` output, which
+# is how the distributable plugin ZIP is built. This file is therefore the
+# single source of truth for what ships in a release.
+
+/.github export-ignore
+/.gitattributes export-ignore
+/README.md export-ignore
+/RELEASE.md export-ignore
+/CHANGELOG.md export-ignore
