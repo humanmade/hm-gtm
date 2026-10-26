@@ -28,8 +28,10 @@ jobs:
             contents: write
         steps:
             - name: Validate version input
+              env:
+                  INPUT_VERSION: ${{ github.event.inputs.version }}
               run: |
-                  VERSION="${{ github.event.inputs.version }}"
+                  VERSION="$INPUT_VERSION"
                   if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
                       echo "::error::Version must be in X.Y.Z format. Got: '$VERSION'"
                       exit 1
@@ -94,7 +96,7 @@ jobs:
                   echo "Created dist/hm-gtm-${TAG}.zip"
 
             - name: Publish GitHub release
-              uses: softprops/action-gh-release@v2
+              uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
               with:
                   tag_name: ${{ env.TAG }}
                   name: ${{ env.TAG }}

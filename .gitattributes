@@ -8,4 +8,5 @@
 /.gitattributes export-ignore
 /README.md export-ignore
 /RELEASE.md export-ignore
+/REVIEW.md export-ignore
 /CHANGELOG.md export-ignore

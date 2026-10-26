@@ -62,6 +62,10 @@ This is by design — tags are immutable. Bump to the next version and run the w
 
 The `Version:` header and `VERSION` constant in `plugin.php` on `master` must both be `__VERSION__`. Restore the placeholder and run the workflow again.
 
+### Tag pushed but the release failed
+
+The tag is immutable, so do not bump the version or move the tag. Rebuild the ZIP from the existing tag with `git archive --format=zip --prefix=hm-gtm/ -o hm-gtm-X.Y.Z.zip X.Y.Z`, then create the release with `gh release create X.Y.Z hm-gtm-X.Y.Z.zip --title X.Y.Z --generate-notes`.
+
 ### ZIP missing files / contains dev files
 
 Adjust the `export-ignore` entries in `.gitattributes`. The ZIP is generated straight from the tagged tree via `git archive`, so it always matches what is in the tag.
@@ -72,7 +76,7 @@ If you ever need to cut a release by hand:
 
 ```bash
 # from a clean checkout of the commit you want to ship
-sed -i "s/__VERSION__/1.2.3/g" plugin.php
+perl -pi -e 's/__VERSION__/1.2.3/g' plugin.php
 git add plugin.php
 git commit -m "Release 1.2.3"
 git tag -a 1.2.3 -m "Release 1.2.3"
